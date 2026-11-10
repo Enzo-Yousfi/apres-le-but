@@ -679,6 +679,7 @@ function match(d,ignoreCity,ignoreReg){
   if(!ignoreReg&&S.reg!=="all"&&d.reg!==S.reg)return false;
   if(!ignoreReg&&S.deps.size&&!S.deps.has(d.dep))return false;
   if(!ignoreCity&&S.city&&d.c!==S.city)return false;
+  if(!ignoreCity&&S.view&&!S.view.contains([C[d.c][1],C[d.c][2]]))return false;
   if(S.q){const h=norm(d.f+" "+d.e+" "+C[d.c][0]+" "+d.depn+" "+d.dep+" "+d.reg+" "+d.d.map(x=>DOMAINS[x]).join(" "));
     if(!norm(S.q).split(/\s+/).every(w=>h.includes(w)))return false;}
   return true;
@@ -690,6 +691,7 @@ function renderQuick(){
   if(!has(S.type))S.type="all";
   let h=`<div class="types" style="grid-template-columns:repeat(${tf.length},auto)">`+tf.map(([k,v])=>`<button class="q" data-t="${k}" aria-pressed="${S.type===k}">${v}</button>`).join("")+`</div>`;
   h+=`<button class="q" data-fav aria-pressed="${S.fav}">${S.fav?"★":"☆"} Favoris${FAV.size?" ("+FAV.size+")":""}</button>`;
+  if(S.view)h+=`<button class="q" data-zone aria-pressed="true">Zone de la carte ✕</button>`;
   if(S.reg!=="all")h+=`<button class="q" data-reg aria-pressed="true">${esc(S.deps.size?[...S.deps].map(k=>DEPN[k]).join(", "):S.reg)} ✕</button>`;
   if(S.city)h+=`<button class="q" data-city aria-pressed="true">${cityName(S.city)} ✕</button>`;
   $("quick").innerHTML=h;
@@ -706,6 +708,7 @@ addEventListener("hashchange",()=>{const b={"#info-com":"ic","#mmi":"mmi"}[locat
 $("butSwitch").addEventListener("click",e=>{const b=e.target.closest("[data-but]");if(b&&b.dataset.but!==S.but)setBut(b.dataset.but);});
 setBut(location.hash==="#info-com"?"ic":location.hash==="#mmi"?"mmi":(()=>{try{return localStorage.getItem("but-choisi");}catch(e){}})()||"mmi",true);
 $("quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(!b)return;
+  if(b.hasAttribute("data-zone")){resetZoom();return;}
   if(b.hasAttribute("data-fav"))S.fav=!S.fav;
   else if(b.hasAttribute("data-reg")){S.reg="all";S.deps.clear();}
   else if(b.hasAttribute("data-city"))S.city=null;else S.type=b.dataset.t;update();});
@@ -883,6 +886,8 @@ function initMap(){
   // zoomer au-delà de la vue France filtre la liste sur la zone visible
   // la vue France est refaite au redimensionnement seulement si l'utilisateur n'a pas bougé la carte
   // (sur téléphone, la barre d'adresse qui se replie déclenche un redimensionnement)
+  map.on("moveend",()=>{const v=map.getZoom()>fitZoom+.3?map.getBounds():null; // au-delà de la vue France : liste = zone visible
+    if(v||S.view){S.view=v;renderQuick();renderList();}});
   map.on("dragstart",()=>atHome=false);
   map.getContainer().addEventListener("wheel",()=>atHome=false,{passive:true});
   map.getContainer().addEventListener("touchstart",e=>{if(e.touches.length>1)atHome=false;},{passive:true});
@@ -910,7 +915,7 @@ function tapBubble(g){
 }
 $("zin").onclick=()=>{if(map){atHome=false;map.zoomIn(.75);}};
 $("zout").onclick=()=>{if(map){atHome=false;map.zoomOut(.75);}};
-function resetZoom(){if(map)fitFrance(true);}
+function resetZoom(){S.view=null;if(map)fitFrance(true);update();}
 
 function update(){
   renderQuick();renderList();renderFilters();drawBubbles();
