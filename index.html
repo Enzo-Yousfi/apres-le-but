@@ -15,12 +15,14 @@
 <title>Après le BUT MMI</title>
 <meta name="description" content="Masters et écoles publiques accessibles après un BUT MMI ou un BUT Information-communication, sur une carte de France.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root{
   /* couleur principale selon le BUT choisi (data-but sur <html>) */
   --blue:#a72587; --accent-text:#a72587; --on-blue:#FFFFFF;
   --paper:#F8F3F0; --halo1:#CFE0F7; --halo2:#F1D8F3;
+  --fav:#E8A20C; --fav-ink:#6B4700; /* favoris : doré, le même pour MMI et Info-com */
   --ink:#0B1F3F; --muted:rgba(11,31,63,.6); --white:#FFFFFF;
   --line:color-mix(in srgb,var(--blue) 16%,transparent); --soft:color-mix(in srgb,var(--blue) 8%,transparent);
   --serif:"Times New Roman Condensed","Instrument Serif","Times New Roman",Times,serif;
@@ -111,10 +113,17 @@ h1 em span:not(.on){opacity:0;transform:translateY(.22em);pointer-events:none}
 .alt-initiale{color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
 .item{position:relative}
 .item .kind{padding-right:40px}
-.fav{position:absolute;top:8px;right:8px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:var(--accent-text);font-size:21px;line-height:1;cursor:pointer;transition:background .2s,transform .15s}
-.fav:hover{background:var(--soft)}
+.fav{position:absolute;top:8px;right:8px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:var(--fav);font-size:21px;line-height:1;cursor:pointer;transition:background .2s,transform .15s}
+.fav:hover{background:color-mix(in srgb,var(--fav) 14%,transparent)}
+.fav[aria-pressed="true"]{text-shadow:0 1px 4px color-mix(in srgb,var(--fav) 45%,transparent)}
 .fav:active{transform:scale(.85)}
-.btn-fav{flex:0 0 50px;font-size:22px}
+.btn.btn-fav{flex:0 0 50px;font-size:28px;color:var(--fav);background:none;box-shadow:none} /* étoile seule, sans cadre */
+.btn.btn-fav:hover{background:color-mix(in srgb,var(--fav) 12%,transparent)}
+.btn.btn-fav[aria-pressed="true"]{color:var(--fav);background:none;text-shadow:0 1px 5px color-mix(in srgb,var(--fav) 45%,transparent)}
+/* puce « Favoris » : dorée, à part des puces de filtre */
+.q[data-fav],.quick .q[data-fav]{color:var(--fav-ink);background:color-mix(in srgb,var(--fav) 16%,var(--paper));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fav) 55%,transparent),0 2px 10px rgba(11,31,63,.12)}
+.q[data-fav]:hover,.quick .q[data-fav]:hover{background:color-mix(in srgb,var(--fav) 26%,var(--paper))}
+.q[data-fav][aria-pressed="true"],.quick .q[data-fav][aria-pressed="true"]{background:var(--fav);color:#fff;box-shadow:0 2px 10px color-mix(in srgb,var(--fav) 45%,transparent)}
 .empty{text-align:center;padding:48px 16px;color:var(--muted)}
 .empty button{color:var(--accent-text);font-weight:600;cursor:pointer;margin-top:8px;text-decoration:underline}
 
@@ -202,43 +211,131 @@ h1 em span:not(.on){opacity:0;transform:translateY(.22em);pointer-events:none}
   #mapPane{position:relative;inset:auto;flex:1;padding:6px 0 0}
   #map{border-radius:20px}
 }
+/* ===================== Carte plein écran façon Google Maps ===================== */
+.app{position:relative;display:block;height:100dvh;max-width:none;overflow:hidden}
+#mapPane{position:absolute;inset:0;z-index:0}
+#map{position:absolute;inset:0;z-index:0;height:auto;border-radius:0;background:#e9ecef} /* contient les calques Leaflet (z 200 à 700) sous les vignettes et boutons */
+.leaflet-container{font-family:var(--sans);background:#e9ecef;outline:none}
+.leaflet-tile-pane{filter:grayscale(.85) brightness(1.03)}
+/* teinte « aurore » posée sur les tuiles (sous les bulles), en mode produit */
+.map-tint{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:multiply;opacity:.38;
+  background:radial-gradient(38% 46% at 22% 28%,var(--halo1),transparent),radial-gradient(34% 42% at 80% 22%,var(--halo2),transparent),
+  radial-gradient(42% 48% at 62% 80%,color-mix(in srgb,var(--blue) 30%,transparent),transparent),radial-gradient(30% 36% at 18% 82%,var(--halo2),transparent),
+  color-mix(in srgb,var(--blue) 5%,#fff)}
+.leaflet-control-attribution{font-size:10px;background:color-mix(in srgb,var(--paper) 80%,transparent)!important;border-radius:8px 0 0 0}
+/* bulles */
+.mk-wrap{background:none;border:0}
+.mk{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:var(--on-blue);
+  font:700 12px/1 var(--sans);border:2px solid #fff;box-shadow:0 3px 10px color-mix(in srgb,var(--blue) 40%,rgba(11,31,63,.25));
+  cursor:pointer;transition:transform .18s var(--ease),filter .2s}
+.mk:hover{transform:scale(1.08);filter:brightness(.92)}
+.mk.sel{box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 35%,transparent),0 3px 10px rgba(11,31,63,.25)}
+/* en-tête flottant */
+.top{position:absolute;left:0;right:0;top:0;z-index:20;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 0;pointer-events:none;background:none}
+.top>*{pointer-events:auto}
+.topcard{background:color-mix(in srgb,var(--paper) 90%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);
+  border-radius:18px;box-shadow:0 6px 24px rgba(11,31,63,.16);padding:10px 10px 10px 14px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{flex:1;min-width:0;font-size:clamp(25px,7.4vw,34px);line-height:1.02;letter-spacing:-.015em}
+.brand h1 em span{padding:0 .06em}
+/* sélecteur de BUT compact */
+.but-switch{flex:none;width:auto;padding:2px;border-radius:10px}
+.but-switch::before{top:2px;bottom:2px;left:2px;width:calc(50% - 2px);border-radius:8px}
+.but-switch button{height:28px;padding:0 9px;font-size:12.5px;border-radius:8px}
+.quick-row{display:flex;align-items:center;margin:0 -12px}
+.quick-row .quick{flex:1;min-width:0;margin:0}
+.install-chip{flex:none;margin-right:12px;white-space:nowrap;background:color-mix(in srgb,var(--paper) 94%,transparent);box-shadow:0 2px 10px rgba(11,31,63,.14)}
+.install-chip[hidden]{display:none}
+@media (max-width:899px){.install-chip{font-size:0;gap:0;width:34px;padding:0;justify-content:center}.install-chip svg{width:15px;height:15px}}
+.search{margin-top:8px}
+.search input{height:42px;background:var(--white)}
+.fbtn{height:42px}
+/* puces : une ligne qui défile, chaque puce posée sur la carte */
+.quick{margin:0 -12px;padding:8px 12px 10px}
+.quick .q{background:color-mix(in srgb,var(--paper) 94%,transparent);box-shadow:0 2px 10px rgba(11,31,63,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.quick .q:hover{background:var(--white)}
+.quick .q[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+.types{gap:8px}
+/* outre-mer : vignettes (pas de zoom), un toucher filtre la liste */
+.om{position:absolute;z-index:6;display:flex;gap:6px}
+.om button{position:relative;flex:none;width:66px;padding:6px 4px 5px;border-radius:14px;cursor:pointer;display:grid;justify-items:center;gap:2px;
+  background:color-mix(in srgb,var(--paper) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 2px 10px rgba(11,31,63,.14);transition:transform .15s,box-shadow .2s}
+.om button:active{transform:scale(.95)}
+.om button svg{width:30px;height:26px;color:var(--blue)}
+.om button span{font-size:9.5px;font-weight:600;color:var(--muted);white-space:nowrap}
+.om button b{position:absolute;top:-5px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--blue);color:var(--on-blue);font-size:10.5px;display:grid;place-items:center}
+.om button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--blue),0 2px 10px rgba(11,31,63,.14)}
+.om button:disabled{opacity:.45;cursor:default}
+.om button:disabled b{display:none}
+.mtools{position:absolute;z-index:6;display:flex;flex-direction:column;gap:6px}
+.mtools button{background:color-mix(in srgb,var(--paper) 94%,transparent);box-shadow:0 2px 10px rgba(11,31,63,.16)}
+/* liste (téléphone) : panneau glissant sous l'en-tête */
+#sheet{z-index:15;background:var(--paper)}
+@media (max-width:899px){
+  .mtools{display:none} /* sur téléphone on zoome avec deux doigts */
+  .om{left:12px;right:12px;top:calc(var(--top-h,170px) + 18px);overflow-x:auto;padding:6px 2px;scrollbar-width:none;display:none}
+  .om.open{display:flex}
+  .om::-webkit-scrollbar{display:none}
+  .leaflet-top.leaflet-right{top:calc(var(--top-h,170px) - 4px)}
+}
+.om-chip{display:none}
+@media (max-width:899px){.om-chip{display:flex}}
+/* ordinateur : carte de recherche en haut à gauche, liste en colonne flottante dessous, puces à droite */
+@media (min-width:900px){
+  .top{left:16px;top:16px;right:auto;width:400px;padding:0}
+  .brand h1{font-size:30px}
+  .quick-row{position:absolute;left:416px;top:0;width:calc(100vw - 16px - 400px - 32px);margin:0;align-items:flex-start}
+  .quick-row .quick{margin:0;padding:4px 0;flex-wrap:wrap;overflow:visible}
+  .install-chip{margin:4px 0 0 8px}
+  #sheet{position:absolute;left:16px;top:calc(var(--top-h,140px) + 12px);bottom:16px;width:400px;height:auto!important;
+    background:color-mix(in srgb,var(--paper) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border-radius:18px;box-shadow:0 6px 24px rgba(11,31,63,.16);padding:4px 10px 0}
+  .handle{padding:10px 6px 12px}
+  #list{padding:0 6px 16px}
+  #mapPane{position:absolute;inset:0;padding:0}
+  .om{left:432px;bottom:16px}
+  .mtools{right:16px;top:auto;bottom:34px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <!-- Annuaire mobile-first : #a72587 (MMI) ou #99c21c (Info-com) / #F8F3F0, fond aurore, Times New Roman Condensed + Akzidenz-Grotesk (repli : Instrument Serif, Helvetica Neue). -->
 <div class="app" id="app" data-view="list">
-  <header class="top">
-    <div class="title">
-      <div class="title-text">
-        <p class="eyebrow"><span>Poursuite d'études</span><button class="install-btn" id="installBtn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>Installer l'app</button></p>
+  <!-- carte en fond, sur tout l'écran -->
+  <section id="mapPane" aria-label="Carte">
+    <div id="map"></div>
+    <div class="mtools">
+      <button type="button" id="zin" aria-label="Zoomer">+</button>
+      <button type="button" id="zout" aria-label="Dézoomer">−</button>
+    </div>
+    <div class="map-off" id="mapOff">Fond de carte indisponible hors connexion.</div>
+  </section>
+
+  <!-- recherche et filtres flottants par-dessus la carte -->
+  <header class="top" id="top">
+    <div class="topcard">
+      <div class="brand">
         <h1>Après le BUT <em id="butName"><span data-but="mmi" class="on">MMI</span><span data-but="ic" aria-hidden="true">Info-com</span></em></h1>
+        <div class="but-switch" id="butSwitch" data-active="mmi" role="group" aria-label="Diplôme de départ"><button type="button" data-but="mmi" aria-pressed="true">MMI</button><button type="button" data-but="ic" aria-pressed="false">Info-com</button></div>
       </div>
-      <div class="but-switch" id="butSwitch" data-active="mmi" role="group" aria-label="Diplôme de départ"><button type="button" data-but="mmi" aria-pressed="true">BUT MMI</button><button type="button" data-but="ic" aria-pressed="false">BUT Info-com</button></div>
+      <div class="search">
+        <label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Ville, école, parcours" aria-label="Rechercher" autocomplete="off"></label>
+        <button class="fbtn" id="openFilters" type="button">Filtres <span class="badge" id="badge"></span></button>
+      </div>
     </div>
-    <div class="search">
-      <label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Ville, école, parcours" aria-label="Rechercher" autocomplete="off"></label>
-      <button class="fbtn" id="openFilters" type="button">Filtres <span class="badge" id="badge"></span></button>
-    </div>
-    <div class="quick" id="quick" role="group" aria-label="Type de diplôme"></div>
+    <div class="quick-row">
+      <div class="quick" id="quick" role="group" aria-label="Type de diplôme"></div>
+      <button class="q install-chip" id="installBtn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>Installer l'app</button></div>
   </header>
 
-  <main class="panes">
-    <section id="sheet" aria-label="Formations" data-snap="half">
-      <div class="handle" id="handle"><div class="grab"></div><div class="handle-row"><b id="count"></b><span id="hint">Glissez pour tout voir</span></div></div>
-      <div id="list"></div>
-    </section>
-    <section id="mapPane" aria-label="Carte">
-      <div id="map">
-        <div class="mtools">
-          <button type="button" id="zin" aria-label="Zoomer">+</button>
-          <button type="button" id="zout" aria-label="Dézoomer">−</button>
-        </div>
-        <div class="map-off" id="mapOff">Fond de carte indisponible hors connexion.</div>
-      </div>
-    </section>
-  </main>
+  <!-- liste des formations : panneau glissant (téléphone) ou colonne flottante (ordinateur) -->
+  <section id="sheet" aria-label="Formations" data-snap="half">
+    <div class="handle" id="handle"><div class="grab"></div><div class="handle-row"><b id="count"></b><span id="hint">Glissez pour tout voir</span></div></div>
+    <div id="list"></div>
+  </section>
 
 </div>
 
@@ -293,7 +390,7 @@ h1 em span:not(.on){opacity:0;transform:translateY(.22em);pointer-events:none}
   <div class="sheet-actions"><button class="btn btn-line" type="button" data-close>Fermer</button></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const DOMAINS = {
   com:"Communication & médias", design:"Design", ux:"UX & sciences cognitives", info:"Informatique & web",
@@ -573,17 +670,15 @@ const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const cityName=c=>C[c][0].split(" —")[0];
 
-function match(d,ignoreCity){
+function match(d,ignoreCity,ignoreReg){
   if(!d.p.includes(S.but))return false;
   if(S.fav&&!FAV.has(favKey(d)))return false;
   if(S.type!=="all"&&d.t!==S.type)return false;
   if(S.alt!=="all"&&d.a!==S.alt)return false;
   if(S.doms.size&&!d.d.some(x=>S.doms.has(x)))return false;
-  if(S.reg!=="all"&&d.reg!==S.reg)return false;
-  if(S.deps.size&&!S.deps.has(d.dep))return false;
+  if(!ignoreReg&&S.reg!=="all"&&d.reg!==S.reg)return false;
+  if(!ignoreReg&&S.deps.size&&!S.deps.has(d.dep))return false;
   if(!ignoreCity&&S.city&&d.c!==S.city)return false;
-  if(!ignoreCity&&S.view&&proj){if(insetOf(C[d.c]))return false;const [x,y]=P(C[d.c]),v=S.view;
-    if(x<v[0]||x>v[2]||y<v[1]||y>v[3])return false;}
   if(S.q){const h=norm(d.f+" "+d.e+" "+C[d.c][0]+" "+d.depn+" "+d.dep+" "+d.reg+" "+d.d.map(x=>DOMAINS[x]).join(" "));
     if(!norm(S.q).split(/\s+/).every(w=>h.includes(w)))return false;}
   return true;
@@ -595,7 +690,6 @@ function renderQuick(){
   if(!has(S.type))S.type="all";
   let h=`<div class="types" style="grid-template-columns:repeat(${tf.length},auto)">`+tf.map(([k,v])=>`<button class="q" data-t="${k}" aria-pressed="${S.type===k}">${v}</button>`).join("")+`</div>`;
   h+=`<button class="q" data-fav aria-pressed="${S.fav}">${S.fav?"★":"☆"} Favoris${FAV.size?" ("+FAV.size+")":""}</button>`;
-  if(S.view)h+=`<button class="q" data-zone aria-pressed="true">Zone de la carte ✕</button>`;
   if(S.reg!=="all")h+=`<button class="q" data-reg aria-pressed="true">${esc(S.deps.size?[...S.deps].map(k=>DEPN[k]).join(", "):S.reg)} ✕</button>`;
   if(S.city)h+=`<button class="q" data-city aria-pressed="true">${cityName(S.city)} ✕</button>`;
   $("quick").innerHTML=h;
@@ -612,7 +706,6 @@ addEventListener("hashchange",()=>{const b={"#info-com":"ic","#mmi":"mmi"}[locat
 $("butSwitch").addEventListener("click",e=>{const b=e.target.closest("[data-but]");if(b&&b.dataset.but!==S.but)setBut(b.dataset.but);});
 setBut(location.hash==="#info-com"?"ic":location.hash==="#mmi"?"mmi":(()=>{try{return localStorage.getItem("but-choisi");}catch(e){}})()||"mmi",true);
 $("quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(!b)return;
-  if(b.hasAttribute("data-zone")){resetZoom();return;}
   if(b.hasAttribute("data-fav"))S.fav=!S.fav;
   else if(b.hasAttribute("data-reg")){S.reg="all";S.deps.clear();}
   else if(b.hasAttribute("data-city"))S.city=null;else S.type=b.dataset.t;update();});
@@ -722,13 +815,15 @@ $("q").addEventListener("input",e=>{S.q=e.target.value.trim();update();});
 /* Panneau liste glissant (mobile) : 3 crans — réduit, moitié, plein écran */
 const sheet=$("sheet"),list=$("list"),mobile=()=>innerWidth<900;
 let snap="half",dragY=null,startY=0,startT=0,baseY=0,lastDrag=0;
-function snapY(s){const P=$("mapPane").offsetHeight,mapH=innerWidth*720/600;
-  return s==="full"?0:s==="peek"?P-96:Math.round(Math.min(P-150,Math.max(P*.6,Math.min(mapH,P*.72))));}
+const topH=()=>Math.round($("top").getBoundingClientRect().bottom);
+// crans : plein (juste sous la recherche), moitié (la carte garde ~55 % de l'écran), réduit
+function snapY(s){const P=$("app").offsetHeight;
+  return s==="full"?topH()+6:s==="peek"?P-96:Math.round(Math.max(topH()+120,P*.58));}
 function setSnap(s){snap=s;sheet.dataset.snap=s;sheet.style.setProperty("--y",snapY(s)+"px");
   $("hint").textContent=s==="full"?"Tirez la barre pour voir la carte":"Tirez la barre pour agrandir";}
-function curY(){return $("mapPane").offsetHeight-sheet.offsetHeight;}
+function curY(){return $("app").offsetHeight-sheet.offsetHeight;}
 function beginDrag(y){dragY=y;startY=y;startT=Date.now();baseY=curY();sheet.classList.add("dragging");}
-function moveDrag(y){const P=$("mapPane").offsetHeight;sheet.style.setProperty("--y",Math.max(0,Math.min(P-96,baseY+y-startY))+"px");}
+function moveDrag(y){const P=$("app").offsetHeight;sheet.style.setProperty("--y",Math.max(topH()+6,Math.min(P-96,baseY+y-startY))+"px");}
 function endDrag(y){sheet.classList.remove("dragging");const dy=y-startY,fast=Date.now()-startT<280&&Math.abs(dy)>30,order=["full","half","peek"];
   dragY=null;if(Math.abs(dy)>6)lastDrag=Date.now();
   if(fast){const i=order.indexOf(snap)+(dy>0?1:-1);setSnap(order[Math.max(0,Math.min(2,i))]);return;}
@@ -746,105 +841,87 @@ list.addEventListener("touchmove",e=>{if(ty===null)return;const y=e.touches[0].c
   e.preventDefault();moveDrag(y);},{passive:false});
 list.addEventListener("touchend",e=>{if(dragY!==null)endDrag(e.changedTouches[0].clientY);ty=null;});
 list.addEventListener("click",e=>{if(Date.now()-lastDrag<350){e.stopImmediatePropagation();e.preventDefault();}},true);
+// hauteur de l'en-tête flottant, utilisée pour placer liste, vignettes et attribution
+function measureTop(){$("app").style.setProperty("--top-h",topH()+"px");if(mobile())setSnap(snap);}
+new ResizeObserver(measureTop).observe($("top"));
 addEventListener("resize",()=>setSnap(snap));
-setSnap("half");
+measureTop();setSnap("half");
 
-/* Carte : métropole + encarts outre-mer sous la carte */
-const W=600,H=720,MH=616;let svg,gRoot,gReg,gBub,proj,zoom,K=1;
-const FR={type:"Feature",geometry:{type:"Polygon",coordinates:[[[-5.2,51.1],[8.3,51.1],[8.3,42.3],[-5.2,42.3],[-5.2,51.1]]]}};
-const INSETS=[ // nom, emprise [lng min, lat min, lng max, lat max]
- {n:"Guadeloupe",b:[-61.85,15.82,-61.0,16.52]},{n:"Martinique",b:[-61.25,14.38,-60.8,14.9]},{n:"Guyane",b:[-54.6,2.1,-51.6,5.8]},
- {n:"La Réunion",b:[55.2,-21.4,55.85,-20.85]},{n:"Mayotte",b:[44.98,-13.02,45.32,-12.62]},{n:"Nouvelle-Calédonie",b:[163.5,-22.8,168.2,-19.9]}];
-// contours simplifiés des DROM (source : france-geojson, simplifiés pour rester légers)
-const OM_SHAPES={"Guadeloupe":[[[[-61.01,16.35],[-61.005,16.332],[-61.051,16.307],[-61.098,16.295],[-61.091,16.312],[-61.01,16.35]]],[[[-61.323,15.95],[-61.319,15.976],[-61.276,16.007],[-61.233,15.986],[-61.23,15.971],[-61.205,15.949],[-61.195,15.93],[-61.205,15.901],[-61.243,15.874],[-61.279,15.867],[-61.315,15.881],[-61.331,15.898],[-61.337,15.941],[-61.323,15.95]]],[[[-61.806,16.268],[-61.795,16.307],[-61.802,16.314],[-61.776,16.35],[-61.743,16.362],[-61.729,16.358],[-61.714,16.337],[-61.679,16.328],[-61.671,16.318],[-61.65,16.321],[-61.626,16.302],[-61.602,16.303],[-61.614,16.283],[-61.621,16.292],[-61.627,16.281],[-61.612,16.279],[-61.614,16.268],[-61.599,16.282],[-61.595,16.266],[-61.58,16.284],[-61.553,16.282],[-61.561,16.276],[-61.55,16.278],[-61.551,16.236],[-61.542,16.231],[-61.548,16.223],[-61.559,16.235],[-61.584,16.233],[-61.59,16.193],[-61.58,16.179],[-61.578,16.143],[-61.561,16.13],[-61.57,16.117],[-61.555,16.055],[-61.565,16.034],[-61.612,15.991],[-61.619,15.972],[-61.707,15.948],[-61.715,15.983],[-61.746,16.009],[-61.751,16.034],[-61.77,16.059],[-61.77,16.131],[-61.78,16.14],[-61.776,16.171],[-61.788,16.195],[-61.782,16.214],[-61.806,16.268]]],[[[-61.53,16.218],[-61.523,16.221],[-61.55,16.252],[-61.554,16.288],[-61.541,16.29],[-61.547,16.301],[-61.537,16.306],[-61.53,16.339],[-61.494,16.354],[-61.498,16.382],[-61.529,16.4],[-61.541,16.438],[-61.535,16.455],[-61.465,16.514],[-61.461,16.499],[-61.444,16.5],[-61.441,16.489],[-61.41,16.467],[-61.4,16.411],[-61.405,16.385],[-61.376,16.341],[-61.297,16.328],[-61.26,16.304],[-61.243,16.273],[-61.175,16.243],[-61.256,16.256],[-61.294,16.243],[-61.339,16.242],[-61.464,16.197],[-61.53,16.218]]]],"Martinique":[[[[-61.118,14.628],[-61.136,14.633],[-61.152,14.65],[-61.177,14.689],[-61.185,14.709],[-61.177,14.746],[-61.215,14.783],[-61.229,14.812],[-61.226,14.831],[-61.207,14.862],[-61.181,14.875],[-61.139,14.878],[-61.098,14.863],[-61.057,14.834],[-61.029,14.83],[-61.032,14.823],[-61.023,14.822],[-61.017,14.808],[-61.002,14.809],[-61.004,14.798],[-60.98,14.778],[-60.961,14.738],[-60.935,14.762],[-60.92,14.758],[-60.888,14.78],[-60.875,14.775],[-60.873,14.758],[-60.884,14.768],[-60.897,14.761],[-60.888,14.753],[-60.899,14.744],[-60.891,14.74],[-60.896,14.733],[-60.91,14.736],[-60.926,14.751],[-60.943,14.743],[-60.938,14.734],[-60.944,14.733],[-60.945,14.723],[-60.934,14.716],[-60.925,14.721],[-60.933,14.708],[-60.914,14.716],[-60.914,14.703],[-60.901,14.699],[-60.911,14.688],[-60.929,14.687],[-60.925,14.679],[-60.937,14.684],[-60.943,14.669],[-60.929,14.653],[-60.912,14.666],[-60.894,14.659],[-60.883,14.665],[-60.886,14.653],[-60.906,14.648],[-60.889,14.641],[-60.899,14.621],[-60.887,14.621],[-60.887,14.615],[-60.87,14.62],[-60.878,14.612],[-60.868,14.601],[-60.872,14.596],[-60.859,14.589],[-60.852,14.595],[-60.846,14.583],[-60.852,14.58],[-60.844,14.579],[-60.854,14.575],[-60.852,14.568],[-60.843,14.571],[-60.849,14.567],[-60.841,14.567],[-60.845,14.559],[-60.825,14.568],[-60.839,14.55],[-60.827,14.537],[-60.837,14.533],[-60.824,14.53],[-60.837,14.512],[-60.824,14.513],[-60.823,14.496],[-60.811,14.48],[-60.824,14.472],[-60.809,14.46],[-60.824,14.452],[-60.835,14.423],[-60.849,14.427],[-60.839,14.411],[-60.846,14.413],[-60.856,14.397],[-60.869,14.395],[-60.893,14.421],[-60.88,14.438],[-60.884,14.452],[-60.878,14.446],[-60.873,14.457],[-60.864,14.455],[-60.866,14.47],[-60.877,14.472],[-60.899,14.448],[-60.91,14.469],[-60.934,14.462],[-60.965,14.473],[-60.974,14.468],[-60.98,14.482],[-60.985,14.473],[-60.992,14.479],[-60.992,14.466],[-61.004,14.479],[-61.006,14.471],[-61.019,14.481],[-61.033,14.477],[-61.056,14.454],[-61.082,14.47],[-61.08,14.489],[-61.091,14.493],[-61.085,14.505],[-61.101,14.508],[-61.088,14.534],[-61.065,14.542],[-61.052,14.562],[-61.052,14.551],[-61.038,14.557],[-61.044,14.547],[-61.027,14.535],[-61.008,14.542],[-61.007,14.536],[-60.994,14.547],[-60.997,14.551],[-60.99,14.55],[-60.998,14.561],[-61.011,14.561],[-61.01,14.578],[-61.024,14.585],[-61.014,14.602],[-61.022,14.603],[-61.019,14.612],[-61.04,14.606],[-61.037,14.593],[-61.06,14.595],[-61.059,14.604],[-61.066,14.597],[-61.071,14.603],[-61.09,14.599],[-61.118,14.628]]]],"Guyane":[[[[-53.469,5.565],[-53.251,5.521],[-53.299,5.549],[-53.275,5.563],[-52.996,5.432],[-52.997,5.46],[-52.941,5.45],[-52.365,4.921],[-52.302,4.951],[-52.006,4.702],[-51.836,4.654],[-51.752,4.418],[-51.692,4.395],[-51.71,4.312],[-51.619,4.201],[-51.656,4.054],[-51.776,3.976],[-51.799,3.887],[-51.973,3.705],[-52.191,3.297],[-52.33,3.172],[-52.379,2.913],[-52.555,2.64],[-52.528,2.581],[-52.661,2.374],[-52.842,2.291],[-52.904,2.187],[-52.98,2.168],[-53.112,2.225],[-53.274,2.19],[-53.227,2.264],[-53.34,2.352],[-53.469,2.252],[-53.74,2.306],[-53.736,2.372],[-53.797,2.361],[-53.835,2.332],[-53.813,2.311],[-53.883,2.309],[-53.905,2.261],[-53.934,2.281],[-53.944,2.215],[-54.066,2.197],[-54.107,2.111],[-54.169,2.129],[-54.184,2.178],[-54.342,2.152],[-54.362,2.212],[-54.477,2.213],[-54.548,2.27],[-54.514,2.281],[-54.539,2.325],[-54.602,2.337],[-54.506,2.338],[-54.476,2.435],[-54.387,2.47],[-54.208,2.778],[-54.161,2.969],[-54.174,3.109],[-54.214,3.15],[-54.064,3.313],[-53.981,3.604],[-54.083,3.674],[-54.122,3.793],[-54.198,3.806],[-54.192,3.847],[-54.237,3.861],[-54.358,4.05],[-54.323,4.144],[-54.391,4.187],[-54.387,4.354],[-54.442,4.371],[-54.45,4.526],[-54.415,4.606],[-54.479,4.904],[-54.416,5.085],[-54.019,5.521],[-53.968,5.745],[-53.799,5.724],[-53.469,5.565]]]],"La Réunion":[[[[55.254,-21.11],[55.221,-21.077],[55.226,-21.053],[55.217,-21.038],[55.235,-21.018],[55.257,-21.016],[55.277,-21.001],[55.277,-20.955],[55.29,-20.933],[55.283,-20.935],[55.284,-20.926],[55.325,-20.935],[55.322,-20.926],[55.345,-20.922],[55.395,-20.882],[55.421,-20.874],[55.451,-20.872],[55.471,-20.885],[55.592,-20.896],[55.651,-20.917],[55.683,-20.944],[55.699,-20.972],[55.707,-21.027],[55.731,-21.048],[55.737,-21.069],[55.78,-21.122],[55.826,-21.144],[55.835,-21.16],[55.837,-21.183],[55.826,-21.186],[55.819,-21.209],[55.802,-21.26],[55.809,-21.331],[55.797,-21.351],[55.775,-21.366],[55.682,-21.375],[55.647,-21.389],[55.633,-21.383],[55.609,-21.387],[55.587,-21.372],[55.551,-21.374],[55.501,-21.351],[55.484,-21.352],[55.449,-21.328],[55.42,-21.322],[55.391,-21.292],[55.339,-21.281],[55.331,-21.259],[55.293,-21.23],[55.281,-21.202],[55.287,-21.161],[55.273,-21.15],[55.271,-21.132],[55.254,-21.11]]]],"Mayotte":[[[[45.1,-12.802],[45.101,-12.797],[45.113,-12.794],[45.098,-12.792],[45.098,-12.784],[45.094,-12.785],[45.102,-12.78],[45.102,-12.767],[45.094,-12.766],[45.092,-12.771],[45.087,-12.765],[45.077,-12.767],[45.06,-12.751],[45.052,-12.756],[45.043,-12.744],[45.058,-12.727],[45.04,-12.722],[45.05,-12.712],[45.052,-12.7],[45.062,-12.702],[45.073,-12.692],[45.073,-12.686],[45.067,-12.681],[45.081,-12.681],[45.083,-12.671],[45.093,-12.663],[45.093,-12.657],[45.098,-12.658],[45.105,-12.651],[45.102,-12.659],[45.105,-12.662],[45.088,-12.67],[45.105,-12.677],[45.102,-12.683],[45.112,-12.686],[45.115,-12.696],[45.131,-12.7],[45.131,-12.704],[45.123,-12.706],[45.132,-12.721],[45.121,-12.723],[45.128,-12.724],[45.125,-12.727],[45.14,-12.735],[45.138,-12.732],[45.144,-12.731],[45.141,-12.728],[45.148,-12.728],[45.155,-12.737],[45.162,-12.732],[45.164,-12.723],[45.167,-12.724],[45.166,-12.718],[45.177,-12.73],[45.183,-12.727],[45.204,-12.73],[45.21,-12.736],[45.214,-12.732],[45.213,-12.741],[45.225,-12.743],[45.237,-12.753],[45.24,-12.763],[45.234,-12.773],[45.23,-12.773],[45.234,-12.768],[45.23,-12.762],[45.232,-12.767],[45.226,-12.774],[45.234,-12.776],[45.238,-12.785],[45.221,-12.79],[45.215,-12.802],[45.203,-12.81],[45.204,-12.819],[45.192,-12.83],[45.197,-12.833],[45.185,-12.839],[45.188,-12.844],[45.196,-12.845],[45.202,-12.863],[45.212,-12.863],[45.213,-12.873],[45.222,-12.873],[45.217,-12.886],[45.196,-12.897],[45.192,-12.906],[45.205,-12.92],[45.186,-12.917],[45.176,-12.933],[45.179,-12.943],[45.169,-12.943],[45.169,-12.949],[45.177,-12.965],[45.193,-12.976],[45.204,-12.975],[45.194,-12.987],[45.181,-12.984],[45.178,-12.995],[45.172,-12.978],[45.16,-12.973],[45.156,-12.98],[45.158,-12.989],[45.149,-13],[45.142,-13],[45.134,-12.989],[45.126,-12.996],[45.125,-12.98],[45.114,-12.982],[45.109,-12.994],[45.106,-12.987],[45.111,-12.968],[45.108,-12.957],[45.093,-12.967],[45.079,-12.962],[45.1,-12.947],[45.104,-12.931],[45.098,-12.925],[45.087,-12.93],[45.089,-12.925],[45.071,-12.9],[45.099,-12.899],[45.106,-12.923],[45.137,-12.938],[45.149,-12.934],[45.155,-12.923],[45.139,-12.891],[45.124,-12.882],[45.111,-12.864],[45.104,-12.863],[45.093,-12.853],[45.103,-12.844],[45.115,-12.844],[45.121,-12.84],[45.101,-12.834],[45.106,-12.82],[45.1,-12.802]]],[[[45.271,-12.793],[45.255,-12.781],[45.268,-12.789],[45.284,-12.759],[45.293,-12.769],[45.296,-12.782],[45.3,-12.784],[45.294,-12.788],[45.296,-12.796],[45.285,-12.803],[45.288,-12.817],[45.28,-12.812],[45.271,-12.793]]]]};
-// projette [nom, lat, lng] : dans l'encart du territoire s'il y en a un, sinon sur la métropole
-const insetOf=c=>INSETS.find(t=>c[2]>=t.b[0]-1&&c[2]<=t.b[2]+1&&c[1]>=t.b[1]-1&&c[1]<=t.b[3]+1);
-function P(c){const i=insetOf(c);return(i&&i.proj?i.proj:proj)([c[2],c[1]]);}
-// Encarts outre-mer : en haut sur téléphone (le bas de la carte est sous la liste), en bas sur grand écran
-let mapTop=null,regionsP=null,gFix,gBubFix;
+/* Carte : OpenStreetMap en plein écran (tuiles passées en gris clair puis teintées aurore).
+   Vue de départ sur la métropole ; on peut dézoomer jusqu'au monde entier pour atteindre l'outre-mer,
+   mais pas au-delà (pas de défilement à l'infini). */
+const FR_B=[[41.25,-5.3],[51.15,9.65]];          // métropole
+const WORLD_B=[[-85,-180],[85,180]];             // le monde entier, sans répétition à gauche ni à droite
+let map,fitZoom=5,markers=null,attrib,atHome=true;
+const fitOpts=()=>mobile()
+  ?{paddingTopLeft:[14,topH()+10],paddingBottomRight:[14,$("app").offsetHeight-snapY(snap)+10]}
+  :{paddingTopLeft:[432,24],paddingBottomRight:[24,24]};
+// Vue France : la métropole entière dans la partie visible (entre la recherche et la liste).
+// Le dézoom s'arrête quand le monde entier tient à l'écran.
+// dézoom maximal : le monde couvre toute la largeur ET toute la hauteur de l'écran (sinon la carte se bloque)
+function worldMin(){const s=map.getSize();map.setMinZoom(Math.ceil(Math.log2(Math.max(s.x,s.y)/256)*4)/4);}
+function fitFrance(anim){if(!map)return;map.invalidateSize();worldMin();const o=fitOpts();
+  fitZoom=map.getBoundsZoom(FR_B,false,L.point(o.paddingTopLeft).add(o.paddingBottomRight));
+  anim?map.flyToBounds(FR_B,{...o,duration:.6}):map.fitBounds(FR_B,{...o,animate:false});atHome=true;}
 function initMap(){
-  mapTop=mobile();
-  svg=d3.select("#map").insert("svg",":first-child").attr("viewBox",`0 0 ${W} ${H}`).attr("preserveAspectRatio",mapTop?"xMidYMin meet":"xMidYMid meet").attr("role","img").attr("aria-label","Carte de la France, métropole et outre-mer");
-  gRoot=svg.append("g");gReg=gRoot.append("g");gBub=gRoot.append("g");
-  // encarts outre-mer : calque fixe, non concerné par le zoom (ce sont des vignettes, pas une carte à explorer)
-  gFix=svg.append("g");
-  // sur téléphone, la rangée d'encarts s'arrête avant les boutons + / − (coin haut droit)
-  const gap=mapTop?6:8,row=W-32-(mapTop?84:0),bw=(row-gap*(INSETS.length-1))/INSETS.length,bh=H-MH-24,y=mapTop?10:MH+12;
-  const ext=mapTop?[[16,y+bh+14],[W-16,H-16]]:[[16,16],[W-16,MH]];
-  proj=d3.geoConicConformal().parallels([44,49]).rotate([-3,0]).fitExtent(ext,FR);
-  INSETS.forEach((t,i)=>{const x=16+i*(bw+gap);t.box=[[x,y],[x+bw,y+bh]];
-    t.proj=d3.geoMercator().fitExtent([[x+8,y+8],[x+bw-8,y+bh-18]],{type:"MultiPoint",coordinates:[[t.b[0],t.b[1]],[t.b[2],t.b[3]]]});
-    // toucher un encart filtre la liste sur ce territoire (un second toucher annule)
-    const g=gFix.append("g").attr("class","inset").attr("role","button").attr("tabindex",0).attr("aria-label","Formations : "+t.n)
-      .on("click",()=>tapInset(t)).on("keydown",ev=>{if(ev.key==="Enter")tapInset(t);});
-    g.append("rect").attr("class","inset-box").attr("x",x).attr("y",y).attr("width",bw).attr("height",bh).attr("rx",8);
-    if(OM_SHAPES[t.n]){const f={type:"Feature",geometry:{type:"MultiPolygon",coordinates:OM_SHAPES[t.n]}};
-      if(d3.geoArea(f)>2*Math.PI)f.geometry.coordinates.forEach(p=>p.forEach(r=>r.reverse())); // sens des anneaux attendu par d3
-      g.append("path").attr("class","region").attr("d",d3.geoPath(t.proj)(f));}
-    g.append("text").attr("class","inset-lbl").attr("x",x+bw/2).attr("y",y+bh-6).text(t.n);
-    t.g=g;});
-  gBubFix=gFix.append("g");
-  zoom=d3.zoom().scaleExtent([1,12]).translateExtent([[0,0],[W,H]]).on("zoom",ev=>{const k=ev.transform.k;gRoot.attr("transform",ev.transform);
-      // pendant le geste : on garde seulement la taille des bulles constante (aucun recalcul, donc fluide)
-      gBub.selectAll("g.bubble").attr("transform",d=>`translate(${d.x},${d.y}) scale(${1/k})`);})
-    .on("end",ev=>{const t=ev.transform;K=t.k;drawBubbles(); // regroupement des bulles recalculé une fois le geste fini
-      // la zone visible de la carte filtre la liste dès qu'on a zoomé
-      if(t.k<1.05)S.view=null;else{const a=t.invert([0,0]),b=t.invert([W,H]);S.view=[a[0],a[1],b[0],b[1]];}
-      renderQuick();renderList();});
-  svg.call(zoom).on("dblclick.zoom",null);
-  regionsP=regionsP||fetch("https://cdn.jsdelivr.net/gh/gregoiredavid/france-geojson@master/regions-version-simplifiee.geojson").then(r=>{if(!r.ok)throw 0;return r.json();});
-  regionsP.then(geo=>{const om=f=>INSETS.find(t=>t.n===f.properties.nom),feats=geo.features.filter(f=>!om(f));
-     proj.fitExtent(ext,{type:"FeatureCollection",features:feats});
-     const path=d3.geoPath(proj);
-     gReg.selectAll("path.metro").data(feats).join("path").attr("class","region metro").attr("d",path).on("click",(ev,f)=>zoomTo(path.bounds(f)));
-     drawBubbles();})
-   .catch(()=>{$("mapOff").style.display="block";});
+  map=L.map("map",{zoomControl:false,attributionControl:false,zoomSnap:.25,zoomDelta:.5,wheelPxPerZoomLevel:90,
+    maxBounds:WORLD_B,maxBoundsViscosity:1,worldCopyJump:false,maxZoom:15,inertia:true});
+  attrib=L.control.attribution({prefix:false,position:mobile()?"topright":"bottomright"}).addTo(map);
+  // OSM France : données OpenStreetMap, libellés en français ; ses serveurs acceptent aussi une page ouverte
+  // depuis un fichier (le serveur principal d'OpenStreetMap la bloque, faute d'adresse d'origine)
+  L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",{subdomains:"abc",maxZoom:20,noWrap:true,bounds:WORLD_B,
+    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a> · fond <a href="https://www.openstreetmap.fr" target="_blank" rel="noopener">OSM France</a>'}).addTo(map);
+  // teinte aurore : calque fixe sur l'écran, entre les tuiles et les bulles
+  const tp=map.createPane("tint");tp.style.zIndex=250;tp.style.pointerEvents="none";
+  const tint=L.DomUtil.create("div","map-tint",tp);
+  const placeTint=()=>{const p=L.DomUtil.getPosition(map.getPane("mapPane")),s=map.getSize();
+    tint.style.transform=`translate(${-p.x}px,${-p.y}px)`;tint.style.width=s.x+"px";tint.style.height=s.y+"px";};
+  map.on("move resize viewreset zoomend",placeTint);
+  markers=L.layerGroup().addTo(map);
+  fitFrance(false);placeTint();
+  map.on("zoomend",drawBubbles);
+  // zoomer au-delà de la vue France filtre la liste sur la zone visible
+  // la vue France est refaite au redimensionnement seulement si l'utilisateur n'a pas bougé la carte
+  // (sur téléphone, la barre d'adresse qui se replie déclenche un redimensionnement)
+  map.on("dragstart",()=>atHome=false);
+  map.getContainer().addEventListener("wheel",()=>atHome=false,{passive:true});
+  map.getContainer().addEventListener("touchstart",e=>{if(e.touches.length>1)atHome=false;},{passive:true});
 }
+// regroupe les villes proches à l'écran (44 px) puis pose une bulle par groupe
 function drawBubbles(){
-  if(!proj)return;
+  if(!map)return;
   const counts={};DATA.forEach(d=>{if(match(d,true))counts[d.c]=(counts[d.c]||0)+1;});
-  const pts=Object.entries(counts).map(([c,n])=>{const [x,y]=P(C[c]);return{c,n,x,y,om:!!insetOf(C[c])};}).sort((a,b)=>b.n-a.n);
-  const th=30/K,cl=[];
-  pts.filter(p=>!p.om).forEach(p=>{const g=cl.find(q=>Math.hypot(q.x-p.x,q.y-p.y)<th);
-    if(g){g.cities.push(p);const t=g.n+p.n;g.x=(g.x*g.n+p.x*p.n)/t;g.y=(g.y*g.n+p.y*p.n)/t;g.n=t;}else cl.push({x:p.x,y:p.y,n:p.n,cities:[p]});});
-  joinBubbles(gBub,cl,K);
-  joinBubbles(gBubFix,pts.filter(p=>p.om).map(p=>({x:p.x,y:p.y,n:p.n,cities:[p]})),1);
-  INSETS.forEach(t=>t.g&&t.g.classed("on",S.reg===t.n));
+  const z=map.getZoom(),cl=[];
+  Object.entries(counts).map(([c,n])=>({c,n,ll:L.latLng(C[c][1],C[c][2])})).sort((a,b)=>b.n-a.n).forEach(p=>{
+    p.pt=map.project(p.ll,z);const g=cl.find(q=>q.pt.distanceTo(p.pt)<40);
+    if(g){g.cities.push(p);g.n+=p.n;}else cl.push({pt:p.pt,ll:p.ll,n:p.n,cities:[p]});});
+  markers.clearLayers();
+  cl.forEach(g=>{const d=Math.round(Math.min(50,20+Math.sqrt(g.n)*3.1)),sel=g.cities.some(c=>c.c===S.city);
+    const m=L.marker(g.ll,{icon:L.divIcon({className:"mk-wrap",iconSize:[d,d],
+      html:`<div class="mk${sel?" sel":""}" style="font-size:${d>38?13:11.5}px">${g.n}</div>`}),
+      title:g.cities.map(c=>cityName(c.c)).join(", ")+" · "+g.n,keyboard:true,riseOnHover:true});
+    m.on("click",()=>tapBubble(g));markers.addLayer(m);});
 }
-// bulles : taille constante à l'écran, obtenue par une mise à l'échelle inverse du zoom (scale 1/k)
-function joinBubbles(layer,cl,k){
-  const sel=layer.selectAll("g.bubble").data(cl,d=>d.cities.map(c=>c.c).sort().join("|"));
-  sel.exit().remove();
-  const en=sel.enter().append("g").attr("class","bubble").attr("role","button").attr("tabindex",0);
-  en.append("title");en.append("circle");en.append("text");
-  const all=en.merge(sel).attr("transform",d=>`translate(${d.x},${d.y}) scale(${1/k})`);
-  all.select("title").text(d=>d.cities.map(c=>cityName(c.c)).join(", ")+" · "+d.n);
-  all.select("circle").attr("r",d=>11+Math.sqrt(d.n)*3.4);
-  all.select("text").attr("font-size",13).text(d=>d.n);
-  all.on("click",(ev,d)=>{ev.stopPropagation();tapBubble(d);}).on("keydown",(ev,d)=>{if(ev.key==="Enter"){ev.stopPropagation();tapBubble(d);}});
-}
-function tapInset(t){if(S.view)resetZoom(); // la zone zoomée exclurait l outre-mer
-  S.reg=S.reg===t.n?"all":t.n;S.deps.clear();S.city=null;update();if(mobile())setSnap("half");list.scrollTop=0;}
-function tapBubble(d){
-  if(d.cities.length>1){const xs=d.cities.map(c=>c.x),ys=d.cities.map(c=>c.y),m=34/K;
-    zoomTo([[Math.min(...xs)-m,Math.min(...ys)-m],[Math.max(...xs)+m,Math.max(...ys)+m]]);return;}
-  S.city=d.cities[0].c;update();
+function tapBubble(g){
+  if(g.cities.length>1){atHome=false;map.flyToBounds(L.latLngBounds(g.cities.map(c=>c.ll)),{...fitOpts(),maxZoom:11,duration:.6});return;}
+  S.city=S.city===g.cities[0].c?null:g.cities[0].c;update();
   if(mobile())setSnap("half");
   list.scrollTop=0;
 }
-function zoomTo([[x0,y0],[x1,y1]]){const k=Math.min(12,.85/Math.max((x1-x0)/W,(y1-y0)/H));
-  svg.transition().duration(700).ease(d3.easeCubicInOut).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(k).translate(-(x0+x1)/2,-(y0+y1)/2));}
-$("zin").onclick=()=>svg&&svg.transition().duration(350).ease(d3.easeCubicOut).call(zoom.scaleBy,1.6);
-$("zout").onclick=()=>svg&&svg.transition().duration(350).ease(d3.easeCubicOut).call(zoom.scaleBy,1/1.6);
-function resetZoom(){if(svg)svg.transition().duration(600).call(zoom.transform,d3.zoomIdentity);else{S.view=null;update();}}
+$("zin").onclick=()=>{if(map){atHome=false;map.zoomIn(.75);}};
+$("zout").onclick=()=>{if(map){atHome=false;map.zoomOut(.75);}};
+function resetZoom(){if(map)fitFrance(true);}
 
 function update(){
   renderQuick();renderList();renderFilters();drawBubbles();
   const n=(S.alt!=="all")+S.doms.size+(S.reg!=="all")+S.deps.size;const b=$("badge");b.textContent=n;b.classList.toggle("on",n>0);
 }
-if(window.d3)initMap();else $("mapOff").style.display="block";
-// passage téléphone ⇄ grand écran : on redessine la carte avec la bonne disposition des encarts
-addEventListener("resize",()=>{if(!svg||mobile()===mapTop)return;svg.remove();svg=null;K=1;S.view=null;initMap();renderQuick();renderList();});
+if(window.L)initMap();else $("mapOff").style.display="block";
+// changement de taille : la carte se recale (vue France conservée si on n'avait pas zoomé)
+let wasMobile=mobile();
+addEventListener("resize",()=>{if(!map)return;map.invalidateSize();
+  if(mobile()!==wasMobile){wasMobile=mobile();attrib.setPosition(wasMobile?"topright":"bottomright");}
+  if(atHome)fitFrance(false);});
 update();
 
 /* ---- Masters : données ouvertes Mon Master (ministère de l'Enseignement supérieur) ----
