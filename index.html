@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="fr" data-type="software">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F8F3F0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Après le BUT">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>Après le BUT MMI</title>
+<meta name="description" content="Masters et écoles publiques accessibles après un BUT MMI ou un BUT Information-communication, sur une carte de France.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* couleur principale selon le BUT choisi (data-but sur <html>) */
+  --blue:#a72587; --accent-text:#a72587; --on-blue:#FFFFFF;
+  --paper:#F8F3F0; --halo1:#CFE0F7; --halo2:#F1D8F3;
+  --ink:#0B1F3F; --muted:rgba(11,31,63,.6); --white:#FFFFFF;
+  --line:color-mix(in srgb,var(--blue) 16%,transparent); --soft:color-mix(in srgb,var(--blue) 8%,transparent);
+  --serif:"Times New Roman Condensed","Instrument Serif","Times New Roman",Times,serif;
+  --sans:"Akzidenz-Grotesk Pro","Akzidenz-Grotesk","AkzidenzGrotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --ease:cubic-bezier(.25,.1,.25,1);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+/* BUT Info-com : vert demandé ; texte en vert plus sombre et libellés foncés sur fond vert pour rester lisibles */
+:root[data-but="ic"]{--blue:#99c21c;--accent-text:#557009;--on-blue:#0B1F3F}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+button,input{font:inherit;color:inherit;border:0;background:none}
+/* Fond « aurore » : halos flous, le troisième prend la couleur du BUT */
+body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;filter:blur(60px);
+  background:radial-gradient(38% 46% at 22% 28%,var(--halo1),transparent),radial-gradient(34% 42% at 80% 22%,var(--halo2),transparent),
+  radial-gradient(42% 48% at 62% 80%,color-mix(in srgb,var(--blue) 35%,transparent),transparent),radial-gradient(30% 36% at 18% 82%,var(--halo2),transparent)}
+a{color:inherit}
+
+/* ---- Coquille d'app ---- */
+.app{display:flex;flex-direction:column;height:100dvh;max-width:1280px;margin:0 auto}
+.top{padding:18px 16px 10px;background:transparent}
+.title{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 28px}
+.title-text{flex:1 1 320px;min-width:0}
+.eyebrow{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.eyebrow span:first-child::before{content:"";display:inline-block;width:18px;height:2px;margin-right:8px;vertical-align:middle;background:currentColor;border-radius:1px}
+h1{font-family:var(--serif);font-weight:400;font-stretch:condensed;font-size:clamp(42px,12vw,58px);line-height:.95;letter-spacing:-.02em;color:var(--ink)}
+/* nom du BUT : les deux noms sont superposés dans la même case, qui prend la largeur du plus long.
+   Le titre se coupe donc au même endroit en MMI et en Info-com : rien ne bouge au changement, seul le nom se fond. */
+h1 em{display:inline-grid;font-style:italic;color:var(--accent-text)}
+h1 em span{grid-area:1/1;justify-self:start;padding:0 .08em;margin-left:-.02em;
+  background:linear-gradient(transparent 58%,color-mix(in srgb,var(--blue) 22%,transparent) 58% 84%,transparent 84%);
+  transition:opacity .4s var(--ease),transform .45s var(--ease)}
+h1 em span:not(.on){opacity:0;transform:translateY(.22em);pointer-events:none}
+.count{font-size:13px;color:var(--muted);white-space:nowrap}
+.search{margin-top:14px;display:flex;gap:8px}
+.search label{flex:1;position:relative}
+.search input{width:100%;height:44px;border-radius:12px;background:var(--white);padding:0 14px 0 40px;font-size:16px;outline:none;box-shadow:inset 0 0 0 1px var(--line);transition:box-shadow .2s}
+.search input:focus{box-shadow:inset 0 0 0 2px var(--blue)}
+.search svg{color:var(--accent-text);position:absolute;left:13px;top:50%;transform:translateY(-50%)}
+.fbtn{height:44px;padding:0 14px;border-radius:12px;background:var(--white);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;cursor:pointer;transition:transform .15s,box-shadow .2s}
+.fbtn:hover{box-shadow:inset 0 0 0 1.5px var(--blue)}
+.fbtn:active{transform:scale(.96)}
+.badge{min-width:20px;height:20px;border-radius:10px;background:var(--blue);color:var(--on-blue);font-size:12px;font-weight:700;display:none;place-items:center;padding:0 6px}
+.badge.on{display:grid}
+/* sélecteur : deux colonnes égales et une pastille qui glisse de l'une à l'autre */
+.but-switch{position:relative;display:grid;grid-template-columns:1fr 1fr;width:100%;padding:3px;border-radius:12px;background:var(--white);box-shadow:inset 0 0 0 1px var(--line)}
+.but-switch::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:9px;background:var(--blue);
+  box-shadow:0 2px 8px color-mix(in srgb,var(--blue) 35%,transparent);transition:transform .45s cubic-bezier(.65,0,.35,1),background-color .45s ease,box-shadow .45s ease}
+.but-switch[data-active="ic"]::before{transform:translateX(100%)}
+.but-switch button{position:relative;z-index:1;height:36px;padding:0 16px;white-space:nowrap;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:color .35s ease}
+.but-switch button[aria-pressed="true"]{color:var(--on-blue)}
+.quick{display:flex;flex-wrap:wrap;gap:8px;padding-top:12px}
+.types{display:grid;grid-template-columns:repeat(4,auto);gap:6px;width:100%}
+.types .q{padding:0 4px;justify-content:center;font-size:clamp(11.5px,3.6vw,13.5px);white-space:nowrap}
+.q{flex:none;height:34px;padding:0 14px;border-radius:17px;font-size:14px;background:var(--soft);color:var(--accent-text);cursor:pointer;transition:background .2s,color .2s,transform .15s;display:flex;align-items:center;gap:6px}
+.q:hover{background:color-mix(in srgb,var(--blue) 14%,transparent)}
+.q:active{transform:scale(.95)}
+.q[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+
+/* Mobile : carte plein écran + liste en panneau glissant (façon Google Maps) */
+.panes{flex:1;min-height:0;position:relative;display:flex;overflow:hidden}
+#mapPane{position:absolute;inset:0}
+#sheet{position:absolute;left:0;right:0;bottom:0;height:calc(100% - var(--y,55%));background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -6px 28px rgba(11,31,63,.16);display:flex;flex-direction:column;transition:height .32s var(--ease);z-index:10}
+#sheet.dragging{transition:none}
+.handle{flex:none;padding:8px 16px 12px;cursor:grab;touch-action:none;user-select:none}
+.handle .grab{margin:0 auto 10px}
+.handle-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.handle-row b{font-family:var(--serif);font-weight:400;font-stretch:condensed;font-size:26px;line-height:1;color:var(--accent-text)}
+.handle-row span{font-size:13px;color:var(--muted)}
+#list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(24px + var(--safe-b));overscroll-behavior:contain}
+
+/* ---- Cartes de formation ---- */
+.item{display:block;width:100%;text-align:left;background:var(--white);border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;box-shadow:0 1px 2px rgba(11,31,63,.05);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.item:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(11,31,63,.09)}
+.item:active{transform:scale(.99)}
+.kind{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.item h2{font-family:var(--serif);font-weight:400;font-stretch:condensed;font-size:24px;line-height:1.05;margin:6px 0 4px}
+.sub{font-size:14px;color:var(--muted)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;font-size:13px}
+.city{color:var(--ink);font-weight:500}
+.alt{font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px;white-space:nowrap}
+.alt-obligatoire{background:var(--blue);color:var(--on-blue)}
+.alt-mixte{background:var(--soft);color:var(--accent-text)}
+.alt-initiale{color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.item{position:relative}
+.item .kind{padding-right:40px}
+.fav{position:absolute;top:8px;right:8px;width:38px;height:38px;display:grid;place-items:center;border-radius:50%;color:var(--accent-text);font-size:21px;line-height:1;cursor:pointer;transition:background .2s,transform .15s}
+.fav:hover{background:var(--soft)}
+.fav:active{transform:scale(.85)}
+.btn-fav{flex:0 0 50px;font-size:22px}
+.empty{text-align:center;padding:48px 16px;color:var(--muted)}
+.empty button{color:var(--accent-text);font-weight:600;cursor:pointer;margin-top:8px;text-decoration:underline}
+
+/* ---- Carte ---- */
+#map{height:100%;background:var(--white);overflow:hidden;position:relative}
+#map svg{width:100%;height:100%;display:block;touch-action:none}
+.region{fill:color-mix(in srgb,var(--blue) 9%,#fff);stroke:var(--white);stroke-width:1.2;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .2s}
+.region:hover{fill:color-mix(in srgb,var(--blue) 18%,#fff)}
+.bubble{cursor:pointer}
+.bubble circle{fill:var(--blue);stroke:var(--white);stroke-width:2;vector-effect:non-scaling-stroke;transition:fill .2s}
+.bubble:hover circle{filter:brightness(.85)}
+.bubble text{fill:var(--on-blue);font-family:var(--sans);font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.mtools{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px}
+.mtools button{width:40px;height:40px;border-radius:12px;background:var(--paper);color:var(--accent-text);font-size:20px;cursor:pointer;transition:transform .15s,background .2s}
+.mtools button:hover{background:#EFE6E0}
+.mtools button:active{transform:scale(.92)}
+.inset{cursor:pointer}
+.inset-box{fill:var(--white);stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.inset .region{pointer-events:none}
+.inset-lbl{font-family:var(--sans);font-size:9px;font-weight:600;fill:var(--muted);text-anchor:middle}
+.map-off{position:absolute;left:12px;right:12px;bottom:12px;background:var(--paper);border-radius:12px;padding:10px 12px;font-size:13px;display:none}
+
+
+/* ---- Feuilles (bottom sheets) ---- */
+.scrim{position:fixed;inset:0;background:rgba(11,31,63,.32);opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--paper);border-radius:24px 24px 0 0;padding:10px 20px calc(20px + var(--safe-b));transform:translateY(105%);transition:transform .32s var(--ease);z-index:31;max-height:88dvh;overflow-y:auto}
+.sheet.open{transform:none}
+.scrim.open{opacity:1;pointer-events:auto}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet h3{font-family:var(--serif);font-weight:400;font-stretch:condensed;font-size:30px;line-height:1.05;color:var(--accent-text)}
+.sheet h4{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{min-height:40px;padding:0 14px;border-radius:12px;background:var(--white);font-size:15px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--line);transition:background .2s,color .2s,transform .15s}
+.opt:active{transform:scale(.96)}
+.opt[aria-pressed="true"]{background:var(--blue);color:var(--on-blue);box-shadow:none}
+.sheet-actions{display:flex;gap:10px;margin-top:26px}
+.btn{flex:1;height:50px;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .15s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn-main{background:var(--blue);color:var(--on-blue)}
+.btn-main:hover{filter:brightness(.9)}
+.btn-line{box-shadow:inset 0 0 0 1.5px var(--blue);color:var(--accent-text)}
+.btn-line:hover{background:var(--soft)}
+.detail-meta{margin-top:14px;display:grid;gap:10px;font-size:15px}
+.detail-meta div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.detail-meta span:first-child{color:var(--muted)}
+.detail-meta span:last-child{text-align:right}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
+
+/* ---- Installer l'app : bouton + tutoriel ---- */
+.install-btn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:14px;background:var(--soft);color:var(--accent-text);
+  font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;cursor:pointer;transition:background .2s,transform .15s}
+.install-btn:hover{background:color-mix(in srgb,var(--blue) 14%,transparent)}
+.install-btn:active{transform:scale(.95)}
+.install-btn[hidden]{display:none}
+.inst-head{display:flex;gap:14px;align-items:center;margin:4px 0 16px}
+.inst-head img{flex:none;border-radius:14px;box-shadow:0 4px 14px rgba(11,31,63,.14)}
+.inst-head p{font-size:14px;color:var(--muted);margin-top:4px}
+#installNow{width:100%;flex:none;margin-bottom:16px}
+#installNow[hidden]{display:none}
+.steps{list-style:none;margin-top:16px;display:grid;gap:14px;counter-reset:s}
+.steps:not(.on){display:none}
+.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:15px;line-height:1.45}
+.steps li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--blue);color:var(--on-blue);display:grid;place-items:center;font-weight:700;font-size:13px}
+.steps b{font-weight:600}
+.glyph{display:inline-block;width:20px;height:20px;vertical-align:-4px;margin:0 2px;color:var(--accent-text)}
+
+/* ---- Grand écran : liste + carte côte à côte ---- */
+@media (min-width:900px){
+  .top{padding:28px 24px 12px}
+  h1{font-size:76px}
+  .but-switch{width:auto;margin-bottom:6px}
+  .types{width:auto;grid-template-columns:repeat(4,auto)}
+  .types .q{padding:0 14px;font-size:14px}
+  .panes{padding:0 24px 24px;gap:20px}
+  #sheet{position:static;flex:0 0 420px;height:auto!important;background:none;box-shadow:none;border-radius:0}
+  .handle{padding:6px 0 12px;cursor:default}
+  .handle .grab,#hint{display:none}
+  #list{overflow-y:auto!important;padding:0 4px 24px 0}
+  #mapPane{position:relative;inset:auto;flex:1;padding:6px 0 0}
+  #map{border-radius:20px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<!-- Annuaire mobile-first : #a72587 (MMI) ou #99c21c (Info-com) / #F8F3F0, fond aurore, Times New Roman Condensed + Akzidenz-Grotesk (repli : Instrument Serif, Helvetica Neue). -->
+<div class="app" id="app" data-view="list">
+  <header class="top">
+    <div class="title">
+      <div class="title-text">
+        <p class="eyebrow"><span>Poursuite d'études</span><button class="install-btn" id="installBtn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>Installer l'app</button></p>
+        <h1>Après le BUT <em id="butName"><span data-but="mmi" class="on">MMI</span><span data-but="ic" aria-hidden="true">Info-com</span></em></h1>
+      </div>
+      <div class="but-switch" id="butSwitch" data-active="mmi" role="group" aria-label="Diplôme de départ"><button type="button" data-but="mmi" aria-pressed="true">BUT MMI</button><button type="button" data-but="ic" aria-pressed="false">BUT Info-com</button></div>
+    </div>
+    <div class="search">
+      <label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Ville, école, parcours" aria-label="Rechercher" autocomplete="off"></label>
+      <button class="fbtn" id="openFilters" type="button">Filtres <span class="badge" id="badge"></span></button>
+    </div>
+    <div class="quick" id="quick" role="group" aria-label="Type de diplôme"></div>
+  </header>
+
+  <main class="panes">
+    <section id="sheet" aria-label="Formations" data-snap="half">
+      <div class="handle" id="handle"><div class="grab"></div><div class="handle-row"><b id="count"></b><span id="hint">Glissez pour tout voir</span></div></div>
+      <div id="list"></div>
+    </section>
+    <section id="mapPane" aria-label="Carte">
+      <div id="map">
+        <div class="mtools">
+          <button type="button" id="zin" aria-label="Zoomer">+</button>
+          <button type="button" id="zout" aria-label="Dézoomer">−</button>
+        </div>
+        <div class="map-off" id="mapOff">Fond de carte indisponible hors connexion.</div>
+      </div>
+    </section>
+  </main>
+
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="filters" role="dialog" aria-label="Filtres">
+  <div class="grab"></div>
+  <h3>Filtres</h3>
+  <h4>Alternance</h4><div class="opts" id="fAlt"></div>
+  <h4>Domaine</h4><div class="opts" id="fDom"></div>
+  <h4>Région</h4><div class="opts" id="fReg"></div>
+  <h4>Département</h4><div class="opts" id="fDep"></div>
+  <div class="sheet-actions">
+    <button class="btn btn-line" type="button" id="clear">Effacer</button>
+    <button class="btn btn-main" type="button" id="apply">Voir les formations</button>
+  </div>
+</div>
+<div class="sheet" id="detail" role="dialog" aria-label="Formation"></div>
+<div class="sheet" id="install" role="dialog" aria-label="Mettre l'application sur l'écran d'accueil">
+  <div class="grab"></div>
+  <div class="inst-head"><img src="icons/icon-192.png" alt="" width="56" height="56">
+    <div><h3>Sur l'écran d'accueil</h3><p>L'annuaire s'ouvrira comme une application, en plein écran, avec son icône.</p></div></div>
+  <button class="btn btn-main" id="installNow" type="button" hidden>Installer maintenant</button>
+  <div class="opts" id="instTabs" role="tablist" aria-label="Votre téléphone">
+    <button class="opt" type="button" role="tab" data-os="ios">iPhone · iPad</button>
+    <button class="opt" type="button" role="tab" data-os="android">Android · Chrome</button>
+    <button class="opt" type="button" role="tab" data-os="samsung">Samsung Internet</button>
+    <button class="opt" type="button" role="tab" data-os="firefox">Firefox</button>
+  </div>
+  <ol class="steps" data-os="ios">
+    <li><span>Ouvrez cette page dans <b>Safari</b>. Chrome et Edge fonctionnent aussi depuis iOS 16.4.</span></li>
+    <li><span>Touchez le bouton <b>Partager</b> <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="icône Partager"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>. Sur iPhone, il est en bas de l'écran, ou dans le menu <svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-label="icône ⋯"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> selon la version d'iOS. Sur iPad, il est en haut à droite.</span></li>
+    <li><span>Faites défiler la liste et touchez <b>Sur l'écran d'accueil</b> <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-label="icône Ajouter"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>.</span></li>
+    <li><span>Vérifiez le nom « Après le BUT », puis touchez <b>Ajouter</b>.</span></li>
+  </ol>
+  <ol class="steps" data-os="android">
+    <li><span>Ouvrez cette page dans <b>Chrome</b>.</span></li>
+    <li><span>Touchez le menu <svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-label="icône menu ⋮"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg> en haut à droite.</span></li>
+    <li><span>Touchez <b>Ajouter à l'écran d'accueil</b>, ou <b>Installer l'application</b> selon la version.</span></li>
+    <li><span>Choisissez <b>Installer</b>, puis confirmez. L'icône apparaît avec vos autres applications.</span></li>
+  </ol>
+  <ol class="steps" data-os="samsung">
+    <li><span>Touchez le menu <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-label="icône menu ☰"><path d="M4 7h16M4 12h16M4 17h16"/></svg> en bas à droite.</span></li>
+    <li><span>Touchez <b>Ajouter la page à</b>, puis <b>Écran d'accueil</b>.</span></li>
+    <li><span>Confirmez avec <b>Ajouter</b>.</span></li>
+  </ol>
+  <ol class="steps" data-os="firefox">
+    <li><span>Touchez le menu <svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-label="icône menu ⋮"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg> (en haut ou en bas à droite selon la disposition).</span></li>
+    <li><span>Touchez <b>Ajouter à l'écran d'accueil</b>, ou <b>Installer</b>.</span></li>
+    <li><span>Confirmez avec <b>Ajouter</b>.</span></li>
+  </ol>
+  <p class="note">Sur ordinateur, Chrome et Edge proposent aussi une icône d'installation dans la barre d'adresse. Vos favoris et le BUT choisi restent mémorisés sur l'appareil.</p>
+  <div class="sheet-actions"><button class="btn btn-line" type="button" data-close>Fermer</button></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DOMAINS = {
+  com:"Communication & médias", design:"Design", ux:"UX & sciences cognitives", info:"Informatique & web",
+  jeu:"Jeu vidéo, 3D & image", av:"Audiovisuel & cinéma", hum:"Humanités numériques & documentation",
+  journ:"Journalisme", mkt:"Marketing, publicité & digital", cult:"Culture, patrimoine & médiation", edit:"Livre & édition"
+};
+const BUTS={mmi:"MMI",ic:"Info-com"};
+const ALT = {obligatoire:"Alternance obligatoire", mixte:"Initiale ou alternance", initiale:"Sans alternance"};
+const TYPES = {M:"Master", I:"École d'ingénieurs · CTI", G:"Grade master · école nationale"};
+
+const C = { // ville : [nom, lat, lng]
+ paris:["Paris",48.8566,2.3522], champs:["Champs-sur-Marne",48.8406,2.587], noisy:["Noisy-le-Grand",48.8486,2.5528],
+ stdenis:["Saint-Denis",48.9362,2.3574], nanterre:["Nanterre",48.8924,2.2071], creteil:["Créteil",48.7904,2.4556],
+ villetaneuse:["Villetaneuse",48.957,2.342], orsay:["Orsay — Saclay",48.711,2.17], evry:["Évry",48.629,2.441],
+ compiegne:["Compiègne",49.4179,2.8261], amiens:["Amiens",49.8941,2.2958], lille:["Lille",50.6292,3.0573],
+ douai:["Douai",50.3714,3.08], valenciennes:["Valenciennes",50.357,3.5235], rouen:["Rouen",49.4432,1.0999],
+ caen:["Caen",49.1829,-0.3707], rennes:["Rennes",48.1173,-1.6778], lannion:["Lannion",48.7326,-3.4566],
+ brest:["Brest",48.3904,-4.4861], vannes:["Vannes",47.6582,-2.7608], nantes:["Nantes",47.2184,-1.5536],
+ angers:["Angers",47.4784,-.5632], lemans:["Le Mans",48.0061,.1996], tours:["Tours",47.3941,.6848],
+ bourges:["Bourges",47.081,2.3988], poitiers:["Poitiers",46.5802,.3404], angouleme:["Angoulême",45.6484,.1562],
+ limoges:["Limoges",45.8336,1.2611], bordeaux:["Bordeaux",44.8378,-.5792], pau:["Pau",43.2951,-.3708],
+ toulouse:["Toulouse",43.6047,1.4442], montauban:["Montauban",44.0176,1.355], montpellier:["Montpellier",43.6108,3.8767],
+ nimes:["Nîmes",43.8367,4.3601], ales:["Alès",44.125,4.081], avignon:["Avignon",43.9493,4.8055],
+ marseille:["Marseille",43.2965,5.3698], aix:["Aix-en-Provence",43.5297,5.4474], aubagne:["Aubagne",43.2927,5.5708],
+ toulon:["Toulon",43.1242,5.928], nice:["Nice — Sophia Antipolis",43.66,7.15], grenoble:["Grenoble",45.1885,5.7245],
+ valence:["Valence",44.9334,4.8924], chambery:["Chambéry",45.5646,5.9178], annecy:["Annecy",45.8992,6.1294],
+ lyon:["Lyon — Villeurbanne",45.764,4.8357], stetienne:["Saint-Étienne",45.4397,4.3872], clermont:["Clermont-Ferrand",45.7772,3.087],
+ dijon:["Dijon",47.322,5.0415], besancon:["Besançon",47.2378,6.0241], belfort:["Belfort — Montbéliard",47.638,6.8628],
+ troyes:["Troyes",48.2973,4.0744], nancy:["Nancy",48.6921,6.1844], metz:["Metz",49.1193,6.1757], strasbourg:["Strasbourg",48.5734,7.7521]
+};
+
+const U = { // établissement : site
+ eiffel:"https://www.univ-gustave-eiffel.fr", imac:"https://www.ingenieur-imac.fr", esiee:"https://www.esiee.fr", utc:"https://www.utc.fr",
+ utbm:"https://www.utbm.fr", utt:"https://www.utt.fr", tse:"https://www.telecom-st-etienne.fr", esir:"https://esir.univ-rennes.fr",
+ enssat:"https://www.enssat.fr", ensim:"https://ensim.univ-lemans.fr", ensc:"https://ensc.bordeaux-inp.fr",
+ insalyon:"https://www.insa-lyon.fr", insarennes:"https://www.insa-rennes.fr", insatlse:"https://www.insa-toulouse.fr",
+ insahdf:"https://www.insa-hautsdefrance.fr", insacvl:"https://www.insa-centrevaldeloire.fr", insarouen:"https://www.insa-rouen.fr",
+ polynantes:"https://polytech.univ-nantes.fr", polylyon:"https://polytech.univ-lyon1.fr", polymtp:"https://www.polytech.umontpellier.fr",
+ polylille:"https://www.polytech-lille.fr", polysaclay:"https://www.polytech.universite-paris-saclay.fr", polytours:"https://polytech.univ-tours.fr",
+ polyannecy:"https://www.polytech.univ-smb.fr", polygre:"https://www.polytech-grenoble.fr", polymars:"https://polytech.univ-amu.fr",
+ polynice:"https://polytech.univ-cotedazur.fr", ensiie:"https://www.ensiie.fr", n7:"https://www.enseeiht.fr", ensicaen:"https://www.ensicaen.fr",
+ isima:"https://www.isima.fr", imtne:"https://imt-nord-europe.fr", imtales:"https://www.imt-mines-ales.fr", imta:"https://www.imt-atlantique.fr",
+ tnancy:"https://telecomnancy.univ-lorraine.fr", galilee:"https://www.sup-galilee.univ-paris13.fr", ensibs:"https://www.ensibs.fr",
+ enib:"https://www.enib.fr", esisar:"https://esisar.grenoble-inp.fr", cnam:"https://www.cnam.fr", ensgsi:"https://ensgsi.univ-lorraine.fr",
+ enseirb:"https://enseirb-matmeca.bordeaux-inp.fr",
+ ut3:"https://www.univ-tlse3.fr", ut2j:"https://www.univ-tlse2.fr", utcap:"https://www.ut-capitole.fr", saclay:"https://www.universite-paris-saclay.fr",
+ lille:"https://www.univ-lille.fr", unilim:"https://www.unilim.fr", lyon1:"https://www.univ-lyon1.fr", lyon2:"https://www.univ-lyon2.fr",
+ lyon3:"https://www.univ-lyon3.fr", um:"https://www.umontpellier.fr", um3:"https://www.univ-montp3.fr", uppa:"https://www.univ-pau.fr",
+ dauphine:"https://dauphine.psl.eu", p1:"https://www.pantheonsorbonne.fr", nanterre:"https://www.parisnanterre.fr", evry:"https://www.univ-evry.fr",
+ upjv:"https://www.u-picardie.fr", lorraine:"https://www.univ-lorraine.fr", nantes:"https://www.univ-nantes.fr", rennes:"https://www.univ-rennes.fr",
+ rennes2:"https://www.univ-rennes2.fr", uga:"https://www.univ-grenoble-alpes.fr", ubx:"https://www.u-bordeaux.fr", ubm:"https://www.u-bordeaux-montaigne.fr",
+ uca:"https://univ-cotedazur.fr", amu:"https://www.univ-amu.fr", p8:"https://www.univ-paris8.fr", chartes:"https://www.chartes.psl.eu",
+ enssib:"https://www.enssib.fr", celsa:"https://www.celsa.fr", sn:"https://www.sorbonne-nouvelle.fr", upec:"https://www.u-pec.fr",
+ uspn:"https://www.univ-spn.fr", ufc:"https://www.univ-fcomte.fr", ub:"https://www.u-bourgogne.fr", ucaclermont:"https://www.uca.fr",
+ poitiers:"https://www.univ-poitiers.fr", angers:"https://www.univ-angers.fr", rouen:"https://www.univ-rouen.fr", tln:"https://www.univ-tln.fr",
+ avignon:"https://univ-avignon.fr", uphf:"https://www.uphf.fr", usmb:"https://www.univ-smb.fr", nimes:"https://www.unimes.fr",
+ unistra:"https://www.unistra.fr", ensci:"https://www.ensci.com", ensad:"https://www.ensad.fr", enjmin:"https://enjmin.cnam.fr",
+ louis:"https://www.ens-louis-lumiere.fr", femis:"https://www.femis.fr", cuej:"https://cuej.unistra.fr", ijba:"https://ijba.u-bordeaux-montaigne.fr",
+ epjt:"https://epjt.fr", ejcm:"https://ejcm.univ-amu.fr", assas:"https://www.u-paris2.fr",
+ iaelille:"https://iae.univ-lille.fr", iaelyon:"https://iae.univ-lyon3.fr", iaebx:"https://www.iae-bordeaux.fr", iaenantes:"https://iae.univ-nantes.fr",
+ iaegre:"https://www.grenoble-iae.fr", iaeaix:"https://www.iae-aix.com", tsm:"https://www.tsm-education.fr", iaemtp:"https://www.iae.umontpellier.fr",
+ iaecaen:"https://www.iae.unicaen.fr", tours:"https://www.univ-tours.fr"
+};
+
+// [type, formation, établissement, ville, domaines, alternance, site]
+const RAW = [
+ // ——— Écoles d'ingénieurs publiques (CTI) ———
+ ["I","Ingénieur IMAC — Image, Multimédia, Audiovisuel, Communication","Université Gustave Eiffel","champs","jeu,info,av","initiale","imac"],
+ ["I","Ingénieur Informatique","ESIEE Paris — Université Gustave Eiffel","noisy","info","mixte","esiee"],
+ ["I","Ingénieur Génie informatique","UTC — Université de technologie de Compiègne","compiegne","info","initiale","utc"],
+ ["I","Ingénieur Informatique","UTBM — Université de technologie de Belfort-Montbéliard","belfort","info","mixte","utbm"],
+ ["I","Ingénieur Informatique et systèmes d'information","UTT — Université de technologie de Troyes","troyes","info","mixte","utt"],
+ ["I","Ingénieur du numérique — image, informatique, réseaux","Télécom Saint-Étienne — Université Jean Monnet","stetienne","info,jeu","mixte","tse"],
+ ["I","Ingénieur Informatique — parcours Imagerie numérique","ESIR — Université de Rennes","rennes","info,jeu","initiale","esir"],
+ ["I","Ingénieur Informatique, Multimédia et Réseaux","ENSSAT — Université de Rennes","lannion","info,av","obligatoire","enssat"],
+ ["I","Ingénieur Informatique — Interaction Personne-Systèmes","ENSIM — Le Mans Université","lemans","info,ux","initiale","ensim"],
+ ["I","Ingénieur Cognitique — facteur humain, UX, IA","ENSC — Bordeaux INP","bordeaux","ux,info","mixte","ensc"],
+ ["I","Ingénieur Informatique","INSA Lyon","lyon","info","initiale","insalyon"],
+ ["I","Ingénieur Informatique","INSA Rennes","rennes","info","initiale","insarennes"],
+ ["I","Ingénieur Informatique et réseaux","INSA Toulouse","toulouse","info","initiale","insatlse"],
+ ["I","Ingénieur Informatique","INSA Hauts-de-France","valenciennes","info","mixte","insahdf"],
+ ["I","Ingénieur Sécurité et technologies informatiques","INSA Centre Val de Loire","bourges","info","initiale","insacvl"],
+ ["I","Ingénieur Informatique et technologies de l'information","INSA Rouen Normandie","rouen","info","initiale","insarouen"],
+ ["I","Ingénieur Informatique","Polytech Nantes","nantes","info","mixte","polynantes"],
+ ["I","Ingénieur Informatique","Polytech Lyon","lyon","info","initiale","polylyon"],
+ ["I","Ingénieur Informatique et gestion","Polytech Montpellier","montpellier","info","mixte","polymtp"],
+ ["I","Ingénieur Informatique et statistique","Polytech Lille","lille","info","initiale","polylille"],
+ ["I","Ingénieur Informatique","Polytech Paris-Saclay","orsay","info","mixte","polysaclay"],
+ ["I","Ingénieur Informatique","Polytech Tours","tours","info","mixte","polytours"],
+ ["I","Ingénieur Informatique, Données, Usages","Polytech Annecy-Chambéry","annecy","info,ux","mixte","polyannecy"],
+ ["I","Ingénieur Informatique","Polytech Grenoble","grenoble","info","mixte","polygre"],
+ ["I","Ingénieur Informatique","Polytech Marseille","marseille","info","initiale","polymars"],
+ ["I","Ingénieur Sciences informatiques","Polytech Nice Sophia","nice","info","mixte","polynice"],
+ ["I","Ingénieur Informatique","ENSIIE","evry","info","mixte","ensiie"],
+ ["I","Ingénieur Sciences du numérique","ENSEEIHT — Toulouse INP","toulouse","info","mixte","n7"],
+ ["I","Ingénieur Informatique","ENSEIRB-MATMECA — Bordeaux INP","bordeaux","info","mixte","enseirb"],
+ ["I","Ingénieur Informatique","ENSICAEN","caen","info","mixte","ensicaen"],
+ ["I","Ingénieur Informatique","ISIMA — Clermont Auvergne INP","clermont","info","mixte","isima"],
+ ["I","Ingénieur du numérique","IMT Nord Europe","douai","info","mixte","imtne"],
+ ["I","Ingénieur Informatique et réseaux","IMT Mines Alès","ales","info","obligatoire","imtales"],
+ ["I","Ingénieur Logiciel — filière FIL","IMT Atlantique","nantes","info","obligatoire","imta"],
+ ["I","Ingénieur Informatique","TELECOM Nancy — Université de Lorraine","nancy","info","mixte","tnancy"],
+ ["I","Ingénieur Innovation — Génie des systèmes industriels","ENSGSI — Université de Lorraine","nancy","design,ux","mixte","ensgsi"],
+ ["I","Ingénieur Informatique","Sup Galilée — Université Sorbonne Paris Nord","villetaneuse","info","mixte","galilee"],
+ ["I","Ingénieur Informatique et cybersécurité","ENSIBS — Université Bretagne Sud","vannes","info","obligatoire","ensibs"],
+ ["I","Ingénieur généraliste — informatique et réalité virtuelle","ENIB — École nationale d'ingénieurs de Brest","brest","info,jeu","initiale","enib"],
+ ["I","Ingénieur Informatique et réseaux","Grenoble INP — Esisar","valence","info","initiale","esisar"],
+ ["I","Ingénieur Informatique","Cnam — Conservatoire national des arts et métiers","paris","info","obligatoire","cnam"],
+
+ // ——— Informatique, image, interaction ———
+ ["M","Master Informatique — parcours Interaction Homme-Machine","Université Toulouse III — Paul Sabatier","toulouse","ux,info","initiale","ut3"],
+ ["M","Master Informatique — parcours Image et Multimédia","Université Toulouse III — Paul Sabatier","toulouse","jeu,info","initiale","ut3"],
+ ["M","Master Informatique — parcours Human-Computer Interaction","Université Paris-Saclay","orsay","ux,info","initiale","saclay"],
+ ["M","Master Informatique — parcours Image, Vision, Interaction","Université de Lille","lille","jeu,info","initiale","lille"],
+ ["M","Master Informatique — parcours Synthèse d'images et conception graphique","Université de Limoges","limoges","jeu,info","initiale","unilim"],
+ ["M","Master Informatique — parcours Image, Développement et Technologie 3D","Université Claude Bernard Lyon 1","lyon","jeu,info","initiale","lyon1"],
+ ["M","Master Informatique — parcours IMAGINA (image, jeux, interaction)","Université de Montpellier","montpellier","jeu,info","initiale","um"],
+ ["M","Master Informatique — parcours Technologies de l'Internet","Université de Pau et des Pays de l'Adour","pau","info","mixte","uppa"],
+
+ // ——— MIAGE ———
+ ["M","Master MIAGE","Université Paris Dauphine — PSL","paris","info","mixte","dauphine"],
+ ["M","Master MIAGE","Université Paris 1 Panthéon-Sorbonne","paris","info","mixte","p1"],
+ ["M","Master MIAGE","Université Paris Nanterre","nanterre","info","mixte","nanterre"],
+ ["M","Master MIAGE","Université Paris-Saclay","orsay","info","mixte","saclay"],
+ ["M","Master MIAGE","Université d'Évry Paris-Saclay","evry","info","mixte","evry"],
+ ["M","Master MIAGE","Université de Lille","lille","info","mixte","lille"],
+ ["M","Master MIAGE","Université de Picardie Jules Verne","amiens","info","mixte","upjv"],
+ ["M","Master MIAGE","Université de Lorraine","nancy","info","mixte","lorraine"],
+ ["M","Master MIAGE","Nantes Université","nantes","info","mixte","nantes"],
+ ["M","Master MIAGE","Université de Rennes","rennes","info","mixte","rennes"],
+ ["M","Master MIAGE","Université Grenoble Alpes","grenoble","info","mixte","uga"],
+ ["M","Master MIAGE","Université de Bordeaux","bordeaux","info","mixte","ubx"],
+ ["M","Master MIAGE","Université Toulouse Capitole","toulouse","info","mixte","utcap"],
+ ["M","Master MIAGE","Université Côte d'Azur","nice","info","mixte","uca"],
+ ["M","Master MIAGE","Aix-Marseille Université","aix","info","mixte","amu"],
+
+ // ——— Communication & médias ———
+ ["M","Master Information-communication — communication numérique, marques, médias","CELSA — Sorbonne Université","paris","com","mixte","celsa"],
+ ["M","Master Information-communication","Université Bordeaux Montaigne","bordeaux","com","mixte","ubm"],
+ ["M","Master Information-communication","Université Lumière Lyon 2","lyon","com","mixte","lyon2"],
+ ["M","Master Information-communication","Université Jean Moulin Lyon 3","lyon","com","mixte","lyon3"],
+ ["M","Master Information-communication","Université Grenoble Alpes","grenoble","com","mixte","uga"],
+ ["M","Master Information-communication","Université Paul-Valéry Montpellier 3","montpellier","com","mixte","um3"],
+ ["M","Master Information-communication","Aix-Marseille Université","aix","com","mixte","amu"],
+ ["M","Master Information-communication","Université Côte d'Azur","nice","com","mixte","uca"],
+ ["M","Master Information-communication","Université de Lille","lille","com","mixte","lille"],
+ ["M","Master Information-communication","Université Rennes 2","rennes","com","mixte","rennes2"],
+ ["M","Master Information-communication","Université Paris 8 Vincennes-Saint-Denis","stdenis","com","mixte","p8"],
+ ["M","Master Information-communication","Université Sorbonne Nouvelle","paris","com","mixte","sn"],
+ ["M","Master Information-communication","Université Paris Nanterre","nanterre","com","mixte","nanterre"],
+ ["M","Master Information-communication","Université Paris-Est Créteil","creteil","com","mixte","upec"],
+ ["M","Master Information-communication","Université Sorbonne Paris Nord","villetaneuse","com","mixte","uspn"],
+ ["M","Master Information-communication","Université Gustave Eiffel","champs","com","mixte","eiffel"],
+ ["M","Master Information-communication","Université de Lorraine","metz","com","mixte","lorraine"],
+ ["M","Master Information-communication","Université de Franche-Comté","besancon","com","mixte","ufc"],
+ ["M","Master Information-communication","Université de Bourgogne","dijon","com","mixte","ub"],
+ ["M","Master Information-communication","Université Clermont Auvergne","clermont","com","mixte","ucaclermont"],
+ ["M","Master Information-communication","Université de Limoges","limoges","com","mixte","unilim"],
+ ["M","Master Information-communication","Université de Poitiers","poitiers","com","mixte","poitiers"],
+ ["M","Master Information-communication","Université d'Angers","angers","com","mixte","angers"],
+ ["M","Master Information-communication","Université de Rouen Normandie","rouen","com","mixte","rouen"],
+ ["M","Master Information-communication","Université de Toulon","toulon","com","mixte","tln"],
+ ["M","Master Information-communication — Culture et communication","Avignon Université","avignon","com","mixte","avignon"],
+ ["M","Master Information-communication","Université Polytechnique Hauts-de-France","valenciennes","com","mixte","uphf"],
+ ["M","Master Information-communication — Communication hypermédia","Université Savoie Mont Blanc","chambery","com,info","mixte","usmb"],
+
+ // ——— Design & création numérique ———
+ ["M","Master Design, arts, médias","Université Paris 1 Panthéon-Sorbonne","paris","design","initiale","p1"],
+ ["M","Master Multimédia interactif","Université Paris 1 Panthéon-Sorbonne","paris","design,info","mixte","p1"],
+ ["M","Master Arts et technologies de l'image virtuelle (ATI)","Université Paris 8 Vincennes-Saint-Denis","stdenis","jeu,design","initiale","p8"],
+ ["M","Master Design","Université Toulouse Jean Jaurès","toulouse","design","initiale","ut2j"],
+ ["M","Master Design — Couleur, image, design (ISCID)","Université Toulouse Jean Jaurès","montauban","design","initiale","ut2j"],
+ ["M","Master Design — Design, innovation, société","Université de Nîmes","nimes","design,ux","initiale","nimes"],
+ ["M","Master Design","Université de Strasbourg","strasbourg","design","initiale","unistra"],
+ ["M","Master Design global","Université de Lorraine","nancy","design","initiale","lorraine"],
+ ["G","Diplôme de créateur industriel (grade master)","ENSCI — Les Ateliers","paris","design","initiale","ensci"],
+ ["G","Diplôme de l'EnsAD (grade master) — design graphique, objet, image","École nationale supérieure des Arts Décoratifs","paris","design,av","initiale","ensad"],
+
+ // ——— UX & sciences cognitives ———
+ ["M","Master Sciences cognitives","Université Grenoble Alpes","grenoble","ux","initiale","uga"],
+ ["M","Master Sciences cognitives","Université de Lorraine","nancy","ux","initiale","lorraine"],
+ ["M","Master Ergonomie","Cnam — Conservatoire national des arts et métiers","paris","ux","mixte","cnam"],
+
+ // ——— Jeu vidéo ———
+ ["M","Master Jeux et médias interactifs numériques","Cnam-Enjmin — avec l'Université de Poitiers","angouleme","jeu,design","initiale","enjmin"],
+ ["M","Master Sciences du jeu","Université Sorbonne Paris Nord","villetaneuse","jeu","initiale","uspn"],
+
+ // ——— Audiovisuel & cinéma ———
+ ["M","Master Cinéma et audiovisuel","Université Sorbonne Nouvelle","paris","av","initiale","sn"],
+ ["M","Master Cinéma","Université Paris 8 Vincennes-Saint-Denis","stdenis","av","initiale","p8"],
+ ["M","Master Cinéma et audiovisuel","Université Rennes 2","rennes","av","initiale","rennes2"],
+ ["M","Master Cinéma et audiovisuel","Université Lumière Lyon 2","lyon","av","initiale","lyon2"],
+ ["M","Master Cinéma et audiovisuel — ESAV","Université Toulouse Jean Jaurès","toulouse","av","initiale","ut2j"],
+ ["M","Master Cinéma et audiovisuel — SATIS","Aix-Marseille Université","aubagne","av","initiale","amu"],
+ ["M","Master Cinéma et audiovisuel","Université Paul-Valéry Montpellier 3","montpellier","av","initiale","um3"],
+ ["G","Diplôme de l'ENS Louis-Lumière (grade master) — cinéma, son, photographie","ENS Louis-Lumière","stdenis","av","initiale","louis"],
+ ["G","Diplôme de La Fémis (grade master)","La Fémis","paris","av","initiale","femis"],
+
+ // ——— Humanités numériques & documentation ———
+ ["M","Master Humanités numériques — Technologies de l'hypermédia","Université Paris 8 Vincennes-Saint-Denis","stdenis","hum,info","initiale","p8"],
+ ["M","Master Technologies numériques appliquées à l'histoire","École nationale des chartes — PSL","paris","hum","initiale","chartes"],
+ ["M","Master Humanités numériques","Université Lumière Lyon 2","lyon","hum","initiale","lyon2"],
+ ["M","Master Sciences de l'information et des bibliothèques","Enssib","lyon","hum","initiale","enssib"],
+ ["M","Master Sciences de l'information et du document","Université de Lille","lille","hum","mixte","lille"],
+
+ // ——— Journalisme ———
+ ["M","Master Journalisme — CUEJ","Université de Strasbourg","strasbourg","journ","initiale","cuej"],
+ ["M","Master Journalisme — IJBA","Université Bordeaux Montaigne","bordeaux","journ","initiale","ijba"],
+ ["M","Master Journalisme — EPJT","Université de Tours","tours","journ","initiale","epjt"],
+ ["M","Master Journalisme — IPJ","Université Paris Dauphine — PSL","paris","journ","mixte","dauphine"],
+ ["M","Master Journalisme — EJCM","Aix-Marseille Université","marseille","journ","initiale","ejcm"],
+ ["M","Master Journalisme — IFP","Université Paris-Panthéon-Assas","paris","journ","mixte","assas"],
+ ["M","Master Journalisme","CELSA — Sorbonne Université","paris","journ","mixte","celsa"],
+ ["M","Master Journalisme — École de journalisme de Grenoble","Université Grenoble Alpes","grenoble","journ","initiale","uga"],
+
+ // ——— Marketing digital ———
+ ["M","Master Marketing, vente — parcours digital","IAE Lille — Université de Lille","lille","mkt","mixte","iaelille"],
+ ["M","Master Marketing, vente — parcours digital","iaelyon — Université Jean Moulin Lyon 3","lyon","mkt","mixte","iaelyon"],
+ ["M","Master Marketing, vente — parcours digital","IAE Bordeaux — Université de Bordeaux","bordeaux","mkt","mixte","iaebx"],
+ ["M","Master Marketing, vente — parcours digital","IAE Nantes — Nantes Université","nantes","mkt","mixte","iaenantes"],
+ ["M","Master Marketing, vente — parcours digital","Grenoble IAE — Université Grenoble Alpes","grenoble","mkt","mixte","iaegre"],
+ ["M","Master Marketing, vente — parcours digital","IAE Paris-Est — Université Paris-Est Créteil","creteil","mkt","mixte","upec"],
+ ["M","Master Marketing, vente — parcours digital","IAE Aix-Marseille","aix","mkt","mixte","iaeaix"],
+ ["M","Master Marketing, vente — parcours digital","TSM — Université Toulouse Capitole","toulouse","mkt","mixte","tsm"],
+ ["M","Master Marketing, vente — parcours digital","IAE Montpellier — Université de Montpellier","montpellier","mkt","mixte","iaemtp"],
+ ["M","Master Marketing, vente — parcours digital","IAE Caen — Université de Caen Normandie","caen","mkt","mixte","iaecaen"]
+];
+
+/* Départements et régions (métropole) */
+const DEPN={"01":"Ain","02":"Aisne","03":"Allier","04":"Alpes-de-Haute-Provence","05":"Hautes-Alpes","06":"Alpes-Maritimes","07":"Ardèche","08":"Ardennes","09":"Ariège","10":"Aube",
+ "11":"Aude","12":"Aveyron","13":"Bouches-du-Rhône","14":"Calvados","15":"Cantal","16":"Charente","17":"Charente-Maritime","18":"Cher","19":"Corrèze","20":"Corse","2A":"Corse-du-Sud","2B":"Haute-Corse",
+ "21":"Côte-d'Or","22":"Côtes-d'Armor","23":"Creuse","24":"Dordogne","25":"Doubs","26":"Drôme","27":"Eure","28":"Eure-et-Loir","29":"Finistère","30":"Gard",
+ "31":"Haute-Garonne","32":"Gers","33":"Gironde","34":"Hérault","35":"Ille-et-Vilaine","36":"Indre","37":"Indre-et-Loire","38":"Isère","39":"Jura","40":"Landes",
+ "41":"Loir-et-Cher","42":"Loire","43":"Haute-Loire","44":"Loire-Atlantique","45":"Loiret","46":"Lot","47":"Lot-et-Garonne","48":"Lozère","49":"Maine-et-Loire","50":"Manche",
+ "51":"Marne","52":"Haute-Marne","53":"Mayenne","54":"Meurthe-et-Moselle","55":"Meuse","56":"Morbihan","57":"Moselle","58":"Nièvre","59":"Nord","60":"Oise",
+ "61":"Orne","62":"Pas-de-Calais","63":"Puy-de-Dôme","64":"Pyrénées-Atlantiques","65":"Hautes-Pyrénées","66":"Pyrénées-Orientales","67":"Bas-Rhin","68":"Haut-Rhin","69":"Rhône","70":"Haute-Saône",
+ "71":"Saône-et-Loire","72":"Sarthe","73":"Savoie","74":"Haute-Savoie","75":"Paris","76":"Seine-Maritime","77":"Seine-et-Marne","78":"Yvelines","79":"Deux-Sèvres","80":"Somme",
+ "81":"Tarn","82":"Tarn-et-Garonne","83":"Var","84":"Vaucluse","85":"Vendée","86":"Vienne","87":"Haute-Vienne","88":"Vosges","89":"Yonne","90":"Territoire de Belfort",
+ "91":"Essonne","92":"Hauts-de-Seine","93":"Seine-Saint-Denis","94":"Val-de-Marne","95":"Val-d'Oise",
+ "971":"Guadeloupe","972":"Martinique","973":"Guyane","974":"La Réunion","976":"Mayotte","988":"Nouvelle-Calédonie"};
+const REGIONS={"Auvergne-Rhône-Alpes":"01 03 07 15 26 38 42 43 63 69 73 74","Bourgogne-Franche-Comté":"21 25 39 58 70 71 89 90","Bretagne":"22 29 35 56",
+ "Centre-Val de Loire":"18 28 36 37 41 45","Corse":"20 2A 2B","Grand Est":"08 10 51 52 54 55 57 67 68 88","Hauts-de-France":"02 59 60 62 80",
+ "Île-de-France":"75 77 78 91 92 93 94 95","Normandie":"14 27 50 61 76","Nouvelle-Aquitaine":"16 17 19 23 24 33 40 47 64 79 86 87",
+ "Occitanie":"09 11 12 30 31 32 34 46 48 65 66 81 82","Pays de la Loire":"44 49 53 72 85","Provence-Alpes-Côte d'Azur":"04 05 06 13 83 84",
+ "Guadeloupe":"971","Martinique":"972","Guyane":"973","La Réunion":"974","Mayotte":"976","Nouvelle-Calédonie":"988"};
+const REGOF={};Object.entries(REGIONS).forEach(([r,l])=>l.split(" ").forEach(d=>REGOF[d]=r));
+const CDEP={paris:"75",champs:"77",noisy:"93",stdenis:"93",nanterre:"92",creteil:"94",villetaneuse:"93",orsay:"91",evry:"91",compiegne:"60",amiens:"80",lille:"59",
+ douai:"59",valenciennes:"59",rouen:"76",caen:"14",rennes:"35",lannion:"22",brest:"29",vannes:"56",nantes:"44",angers:"49",lemans:"72",tours:"37",bourges:"18",
+ poitiers:"86",angouleme:"16",limoges:"87",bordeaux:"33",pau:"64",toulouse:"31",montauban:"82",montpellier:"34",nimes:"30",ales:"30",avignon:"84",marseille:"13",
+ aix:"13",aubagne:"13",toulon:"83",nice:"06",grenoble:"38",valence:"26",chambery:"73",annecy:"74",lyon:"69",stetienne:"42",clermont:"63",dijon:"21",besancon:"25",
+ belfort:"90",troyes:"10",nancy:"54",metz:"57",strasbourg:"67"};
+const DEPFIX={"SAINT QUENTIN|23":"02","CORTE|20":"2B"}; // erreurs de code postal dans les données sources
+// outre-mer : le code du territoire est stocké en 4e position avec la ville
+function depOf(c){if(CDEP[c])return CDEP[c];if(C[c]&&C[c][3])return C[c][3];if(DEPFIX[c])return DEPFIX[c];const d=c.split("|")[1]||"";return d.length===1?"0"+d:d;}
+function geoTag(d){d.dep=depOf(d.c);d.depn=DEPN[d.dep]||"";d.reg=REGOF[d.dep]||"";return d;}
+
+const RAW_DATA = RAW.map((r,i)=>({id:i,t:r[0],f:r[1],e:r[2],c:r[3],d:r[4].split(","),a:r[5],u:U[r[6]]||"https://www.monmaster.gouv.fr",region:null})).map(geoTag)
+  // liste intégrée : informatique, design, image → MMI ; communication, journalisme, documentation, marketing → les deux
+  .map(d=>(d.p=d.t==="M"&&d.d.some(x=>["com","journ","hum","mkt"].includes(x))?["mmi","ic"]:["mmi"],d));
+let DATA = RAW_DATA; // remplacé par les données Mon Master une fois chargées
+
+const TF={all:"Tout",M:"Masters",I:"Ingénieur",G:"Grade master"};
+const KIND={M:"Master",I:"École d'ingénieurs · CTI",G:"Grade master"};
+const ALTS={all:"Toutes",obligatoire:"Obligatoire",mixte:"Les deux",initiale:"Sans alternance"};
+const ALT_SHORT={obligatoire:"Alternance",mixte:"Alternance possible",initiale:"Initiale"};
+
+const S={but:"mmi",q:"",type:"all",alt:"all",doms:new Set(),reg:"all",deps:new Set(),city:null,view:null,fav:false};
+/* Favoris : gardés dans le navigateur, identifiés par type + établissement + intitulé + ville */
+const FAV_KEY="mmi-favoris";
+const FAV=new Set((()=>{try{return JSON.parse(localStorage.getItem(FAV_KEY))||[];}catch(e){return[];}})());
+const favKey=d=>[d.t,d.e,d.f,d.c].join("|");
+function toggleFav(d){const k=favKey(d);FAV.has(k)?FAV.delete(k):FAV.add(k);
+  try{localStorage.setItem(FAV_KEY,JSON.stringify([...FAV]));}catch(e){}
+  update();if($("detail").classList.contains("open")&&$("detail").dataset.id==d.id)openDetail(d);}
+const $=id=>document.getElementById(id);
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cityName=c=>C[c][0].split(" —")[0];
+
+function match(d,ignoreCity){
+  if(!d.p.includes(S.but))return false;
+  if(S.fav&&!FAV.has(favKey(d)))return false;
+  if(S.type!=="all"&&d.t!==S.type)return false;
+  if(S.alt!=="all"&&d.a!==S.alt)return false;
+  if(S.doms.size&&!d.d.some(x=>S.doms.has(x)))return false;
+  if(S.reg!=="all"&&d.reg!==S.reg)return false;
+  if(S.deps.size&&!S.deps.has(d.dep))return false;
+  if(!ignoreCity&&S.city&&d.c!==S.city)return false;
+  if(!ignoreCity&&S.view&&proj){const [x,y]=P(C[d.c]),v=S.view;
+    if(x<v[0]||x>v[2]||y<v[1]||y>v[3])return false;}
+  if(S.q){const h=norm(d.f+" "+d.e+" "+C[d.c][0]+" "+d.depn+" "+d.dep+" "+d.reg+" "+d.d.map(x=>DOMAINS[x]).join(" "));
+    if(!norm(S.q).split(/\s+/).every(w=>h.includes(w)))return false;}
+  return true;
+}
+
+/* Puces rapides : type + ville sélectionnée */
+function renderQuick(){
+  const has=t=>t==="all"||DATA.some(d=>d.t===t&&d.p.includes(S.but)),tf=Object.entries(TF).filter(([k])=>has(k));
+  if(!has(S.type))S.type="all";
+  let h=`<div class="types" style="grid-template-columns:repeat(${tf.length},auto)">`+tf.map(([k,v])=>`<button class="q" data-t="${k}" aria-pressed="${S.type===k}">${v}</button>`).join("")+`</div>`;
+  h+=`<button class="q" data-fav aria-pressed="${S.fav}">${S.fav?"★":"☆"} Favoris${FAV.size?" ("+FAV.size+")":""}</button>`;
+  if(S.view)h+=`<button class="q" data-zone aria-pressed="true">Zone de la carte ✕</button>`;
+  if(S.reg!=="all")h+=`<button class="q" data-reg aria-pressed="true">${esc(S.deps.size?[...S.deps].map(k=>DEPN[k]).join(", "):S.reg)} ✕</button>`;
+  if(S.city)h+=`<button class="q" data-city aria-pressed="true">${cityName(S.city)} ✕</button>`;
+  $("quick").innerHTML=h;
+}
+/* Choix du BUT : couleur, titre, formations ; mémorisé et partageable (#mmi / #info-com) */
+function setBut(b,init){if(!BUTS[b])b="mmi";S.but=b;document.documentElement.dataset.but=b;
+  $("butName").querySelectorAll("span").forEach(s=>{const on=s.dataset.but===b;s.classList.toggle("on",on);s.setAttribute("aria-hidden",!on);});
+  $("butSwitch").dataset.active=b;document.title="Après le BUT "+BUTS[b];
+  document.querySelectorAll("#butSwitch button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.but===b));
+  try{localStorage.setItem("but-choisi",b);}catch(e){}
+  try{history.replaceState(null,"",b==="ic"?"#info-com":"#mmi");}catch(e){}
+  if(!init){S.doms.clear();S.type="all";S.city=null;update();}}
+addEventListener("hashchange",()=>{const b={"#info-com":"ic","#mmi":"mmi"}[location.hash];if(b&&b!==S.but)setBut(b);});
+$("butSwitch").addEventListener("click",e=>{const b=e.target.closest("[data-but]");if(b&&b.dataset.but!==S.but)setBut(b.dataset.but);});
+setBut(location.hash==="#info-com"?"ic":location.hash==="#mmi"?"mmi":(()=>{try{return localStorage.getItem("but-choisi");}catch(e){}})()||"mmi",true);
+$("quick").addEventListener("click",e=>{const b=e.target.closest(".q");if(!b)return;
+  if(b.hasAttribute("data-zone")){resetZoom();return;}
+  if(b.hasAttribute("data-fav"))S.fav=!S.fav;
+  else if(b.hasAttribute("data-reg")){S.reg="all";S.deps.clear();}
+  else if(b.hasAttribute("data-city"))S.city=null;else S.type=b.dataset.t;update();});
+
+/* Liste */
+const ORDER={I:0,M:1,G:2};
+function renderList(){
+  const list=DATA.filter(d=>match(d)).sort((a,b)=>ORDER[a.t]-ORDER[b.t]||cityName(a.c).localeCompare(cityName(b.c),"fr"));
+  $("count").textContent=list.length+" formation"+(list.length>1?"s":"");
+  $("list").innerHTML=list.length?list.map(d=>`
+    <button class="item" data-id="${d.id}" type="button">
+      ${(on=>`<span class="fav" role="button" tabindex="0" aria-label="${on?"Retirer des":"Ajouter aux"} favoris" aria-pressed="${on}">${on?"★":"☆"}</span>`)(FAV.has(favKey(d)))}
+      <div class="kind">${KIND[d.t]}</div>
+      <h2>${esc(d.f)}</h2>
+      <div class="sub">${esc(d.e)}</div>
+      <div class="foot"><span class="city">${cityName(d.c)}</span><span class="alt alt-${d.a}">${ALT_SHORT[d.a]}</span></div>
+    </button>`).join("")
+   :S.fav&&!FAV.size?`<div class="empty">Aucun favori pour l'instant.<br>Touchez ☆ sur une formation pour la retrouver ici.</div>`
+   :`<div class="empty">Aucune formation pour ces critères.<br><button type="button" onclick="clearAll()">Effacer les filtres</button></div>`;
+}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;const d=DATA[+b.dataset.id];
+  if(e.target.closest(".fav")){e.stopPropagation();toggleFav(d);return;}openDetail(d);});
+$("list").addEventListener("keydown",e=>{const f=e.target.closest(".fav");if(!f||(e.key!=="Enter"&&e.key!==" "))return;
+  e.preventDefault();e.stopPropagation();toggleFav(DATA[+f.closest(".item").dataset.id]);});
+
+/* Feuille détail */
+function openDetail(d){
+  const on=FAV.has(favKey(d));$("detail").dataset.id=d.id;
+  $("detail").innerHTML=`<div class="grab"></div>
+    <div class="kind">${KIND[d.t]}</div>
+    <h3 style="margin-top:6px">${esc(d.f)}</h3>
+    <div class="detail-meta">
+      <div><span>Établissement</span><span>${esc(d.e)}</span></div>
+      <div><span>Ville</span><span>${C[d.c][0]}</span></div>
+      ${d.depn?`<div><span>Département</span><span>${esc(d.depn)} (${d.dep}) · ${esc(d.reg)}</span></div>`:""}
+      <div><span>Alternance</span><span>${ALTS[d.a]==="Les deux"?"Initiale ou alternance":ALTS[d.a]}</span></div>
+      <div><span>Domaine</span><span>${d.d.map(x=>DOMAINS[x]).join(", ")}</span></div>
+      ${d.mm&&d.cap?`<div><span>Capacité</span><span>${d.cap} places</span></div>`:""}
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-line btn-fav" type="button" data-detfav aria-pressed="${on}" aria-label="${on?"Retirer des":"Ajouter aux"} favoris" title="${on?"Retirer des":"Ajouter aux"} favoris">${on?"★":"☆"}</button>
+      <a class="btn btn-line" href="${d.t==="I"?"https://www.cti-commission.fr/accreditation":"https://www.monmaster.gouv.fr"}" target="_blank" rel="noopener">${d.t==="I"?"Fiche CTI":"Mon Master"}</a>
+      <a class="btn btn-main" href="${d.u}" target="_blank" rel="noopener">Voir le site</a>
+    </div>
+    <p class="note">${d.mm?`Chiffres de la campagne Mon Master ${d.session} (données ouvertes du ministère). `:""}Modalités d'admission et d'alternance à confirmer sur la fiche officielle.</p>`;
+  open("detail");
+}
+
+$("detail").addEventListener("click",e=>{if(e.target.closest("[data-detfav]"))toggleFav(DATA[+$("detail").dataset.id]);});
+
+/* Feuille filtres */
+function renderFilters(){
+  $("fAlt").innerHTML=Object.entries(ALTS).map(([k,v])=>`<button class="opt" data-a="${k}" aria-pressed="${S.alt===k}">${v}</button>`).join("");
+  const cur=DATA.filter(d=>d.p.includes(S.but)),present=new Set(cur.flatMap(d=>d.d));
+  $("fDom").innerHTML=Object.entries(DOMAINS).filter(([k])=>present.has(k)).map(([k,v])=>`<button class="opt" data-d="${k}" aria-pressed="${S.doms.has(k)}">${v}</button>`).join("");
+  const regs=[...new Set(cur.map(d=>d.reg).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr"));
+  $("fReg").innerHTML=[["all","Toutes"],...regs.map(r=>[r,r])].map(([k,v])=>`<button class="opt" data-r="${esc(k)}" aria-pressed="${S.reg===k}">${esc(v)}</button>`).join("");
+  if(S.reg==="all")$("fDep").innerHTML=`<p class="note" style="margin:0">Choisissez d'abord une région.</p>`;
+  else $("fDep").innerHTML=[...new Set(cur.filter(d=>d.reg===S.reg).map(d=>d.dep))].sort()
+    .map(k=>`<button class="opt" data-dep="${k}" aria-pressed="${S.deps.has(k)}">${esc(DEPN[k])} (${k})</button>`).join("");
+}
+$("fReg").addEventListener("click",e=>{const b=e.target.closest(".opt");if(!b)return;S.reg=b.dataset.r;S.deps.clear();update();});
+$("fDep").addEventListener("click",e=>{const b=e.target.closest(".opt");if(!b)return;const k=b.dataset.dep;S.deps.has(k)?S.deps.delete(k):S.deps.add(k);update();});
+$("fAlt").addEventListener("click",e=>{const b=e.target.closest(".opt");if(!b)return;S.alt=b.dataset.a;update();});
+$("fDom").addEventListener("click",e=>{const b=e.target.closest(".opt");if(!b)return;const k=b.dataset.d;S.doms.has(k)?S.doms.delete(k):S.doms.add(k);update();});
+$("clear").onclick=()=>{S.alt="all";S.doms.clear();S.reg="all";S.deps.clear();update();};
+$("apply").onclick=closeSheets;
+$("openFilters").onclick=()=>open("filters");
+function clearAll(){S.fav=false;S.q="";S.type="all";S.alt="all";S.doms.clear();S.reg="all";S.deps.clear();S.city=null;$("q").value="";update();resetZoom();}
+
+/* Installer l'app : tutoriel adapté au téléphone, installation directe quand le navigateur la propose */
+(()=>{const ua=navigator.userAgent,standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  if(standalone){$("installBtn").hidden=true;return;} // déjà ouverte comme application
+  const os=/iPad|iPhone|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)?"ios":/SamsungBrowser/.test(ua)?"samsung":/Firefox|FxiOS/.test(ua)&&!/iPhone|iPad/.test(ua)?"firefox":/iPhone|iPad/.test(ua)?"ios":"android";
+  const show=o=>{document.querySelectorAll("#instTabs .opt").forEach(b=>{const on=b.dataset.os===o;b.setAttribute("aria-pressed",on);b.setAttribute("aria-selected",on);});
+    document.querySelectorAll("#install .steps").forEach(l=>l.classList.toggle("on",l.dataset.os===o));};
+  show(os);
+  $("instTabs").addEventListener("click",e=>{const b=e.target.closest("[data-os]");if(b)show(b.dataset.os);});
+  $("installBtn").onclick=()=>open("install");
+  $("install").querySelector("[data-close]").onclick=closeSheets;
+  let deferred=null; // Chrome / Edge / Samsung : installation en un geste
+  addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("installNow").hidden=false;});
+  $("installNow").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$("installNow").hidden=true;closeSheets();};
+  addEventListener("appinstalled",()=>{$("installBtn").hidden=true;closeSheets();});
+})();
+function open(id){$(id).classList.add("open");$("scrim").classList.add("open");}
+function closeSheets(){document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open"));$("scrim").classList.remove("open");}
+$("scrim").onclick=closeSheets;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheets();});
+// glisser vers le bas pour fermer
+document.querySelectorAll(".sheet").forEach(sh=>{let y0=null;
+  sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0)y0=e.touches[0].clientY;},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0===null)return;const dy=e.touches[0].clientY-y0;if(dy>0)sh.style.transform=`translateY(${dy}px)`;},{passive:true});
+  sh.addEventListener("touchend",e=>{if(y0===null)return;const dy=e.changedTouches[0].clientY-y0;sh.style.transform="";y0=null;if(dy>90)closeSheets();});
+});
+
+$("q").addEventListener("input",e=>{S.q=e.target.value.trim();update();});
+
+/* Panneau liste glissant (mobile) : 3 crans — réduit, moitié, plein écran */
+const sheet=$("sheet"),list=$("list"),mobile=()=>innerWidth<900;
+let snap="half",dragY=null,startY=0,startT=0,baseY=0,lastDrag=0;
+function snapY(s){const P=$("mapPane").offsetHeight,mapH=innerWidth*720/600;
+  return s==="full"?0:s==="peek"?P-96:Math.round(Math.min(P-160,Math.max(P*.42,mapH)));}
+function setSnap(s){snap=s;sheet.dataset.snap=s;sheet.style.setProperty("--y",snapY(s)+"px");
+  $("hint").textContent=s==="full"?"Tirez la barre pour voir la carte":"Tirez la barre pour agrandir";}
+function curY(){return $("mapPane").offsetHeight-sheet.offsetHeight;}
+function beginDrag(y){dragY=y;startY=y;startT=Date.now();baseY=curY();sheet.classList.add("dragging");}
+function moveDrag(y){const P=$("mapPane").offsetHeight;sheet.style.setProperty("--y",Math.max(0,Math.min(P-96,baseY+y-startY))+"px");}
+function endDrag(y){sheet.classList.remove("dragging");const dy=y-startY,fast=Date.now()-startT<280&&Math.abs(dy)>30,order=["full","half","peek"];
+  dragY=null;if(Math.abs(dy)>6)lastDrag=Date.now();
+  if(fast){const i=order.indexOf(snap)+(dy>0?1:-1);setSnap(order[Math.max(0,Math.min(2,i))]);return;}
+  const y0=baseY+dy;setSnap(order.reduce((a,b)=>Math.abs(snapY(b)-y0)<Math.abs(snapY(a)-y0)?b:a));}
+$("handle").addEventListener("pointerdown",e=>{if(!mobile())return;$("handle").setPointerCapture(e.pointerId);beginDrag(e.clientY);});
+$("handle").addEventListener("pointermove",e=>{if(dragY!==null)moveDrag(e.clientY);});
+$("handle").addEventListener("pointerup",e=>{if(dragY===null)return;if(Math.abs(e.clientY-startY)<6){setSnap(snap==="full"?"half":"full");sheet.classList.remove("dragging");dragY=null;return;}endDrag(e.clientY);});
+// la liste défile au doigt quelle que soit la hauteur du panneau ;
+// tirer vers le bas quand elle est déjà en haut réduit le panneau
+let ty=null;
+list.addEventListener("touchstart",e=>{if(mobile())ty=e.touches[0].clientY;},{passive:true});
+list.addEventListener("touchmove",e=>{if(ty===null)return;const y=e.touches[0].clientY,dy=y-ty;
+  if(dragY===null){if(Math.abs(dy)<6)return;
+    if(snap!=="peek"&&list.scrollTop<=0&&dy>0)beginDrag(ty);else{ty=null;return;}}
+  e.preventDefault();moveDrag(y);},{passive:false});
+list.addEventListener("touchend",e=>{if(dragY!==null)endDrag(e.changedTouches[0].clientY);ty=null;});
+list.addEventListener("click",e=>{if(Date.now()-lastDrag<350){e.stopImmediatePropagation();e.preventDefault();}},true);
+addEventListener("resize",()=>setSnap(snap));
+setSnap("half");
+
+/* Carte : métropole + encarts outre-mer sous la carte */
+const W=600,H=720,MH=616;let svg,gRoot,gReg,gBub,proj,zoom,K=1;
+const FR={type:"Feature",geometry:{type:"Polygon",coordinates:[[[-5.2,51.1],[8.3,51.1],[8.3,42.3],[-5.2,42.3],[-5.2,51.1]]]}};
+const INSETS=[ // nom, emprise [lng min, lat min, lng max, lat max]
+ {n:"Guadeloupe",b:[-61.85,15.82,-61.0,16.52]},{n:"Martinique",b:[-61.25,14.38,-60.8,14.9]},{n:"Guyane",b:[-54.6,2.1,-51.6,5.8]},
+ {n:"La Réunion",b:[55.2,-21.4,55.85,-20.85]},{n:"Mayotte",b:[44.98,-13.02,45.32,-12.62]},{n:"Nouvelle-Calédonie",b:[163.5,-22.8,168.2,-19.9]}];
+// contours simplifiés des DROM (source : france-geojson, simplifiés pour rester légers)
+const OM_SHAPES={"Guadeloupe":[[[[-61.01,16.35],[-61.005,16.332],[-61.051,16.307],[-61.098,16.295],[-61.091,16.312],[-61.01,16.35]]],[[[-61.323,15.95],[-61.319,15.976],[-61.276,16.007],[-61.233,15.986],[-61.23,15.971],[-61.205,15.949],[-61.195,15.93],[-61.205,15.901],[-61.243,15.874],[-61.279,15.867],[-61.315,15.881],[-61.331,15.898],[-61.337,15.941],[-61.323,15.95]]],[[[-61.806,16.268],[-61.795,16.307],[-61.802,16.314],[-61.776,16.35],[-61.743,16.362],[-61.729,16.358],[-61.714,16.337],[-61.679,16.328],[-61.671,16.318],[-61.65,16.321],[-61.626,16.302],[-61.602,16.303],[-61.614,16.283],[-61.621,16.292],[-61.627,16.281],[-61.612,16.279],[-61.614,16.268],[-61.599,16.282],[-61.595,16.266],[-61.58,16.284],[-61.553,16.282],[-61.561,16.276],[-61.55,16.278],[-61.551,16.236],[-61.542,16.231],[-61.548,16.223],[-61.559,16.235],[-61.584,16.233],[-61.59,16.193],[-61.58,16.179],[-61.578,16.143],[-61.561,16.13],[-61.57,16.117],[-61.555,16.055],[-61.565,16.034],[-61.612,15.991],[-61.619,15.972],[-61.707,15.948],[-61.715,15.983],[-61.746,16.009],[-61.751,16.034],[-61.77,16.059],[-61.77,16.131],[-61.78,16.14],[-61.776,16.171],[-61.788,16.195],[-61.782,16.214],[-61.806,16.268]]],[[[-61.53,16.218],[-61.523,16.221],[-61.55,16.252],[-61.554,16.288],[-61.541,16.29],[-61.547,16.301],[-61.537,16.306],[-61.53,16.339],[-61.494,16.354],[-61.498,16.382],[-61.529,16.4],[-61.541,16.438],[-61.535,16.455],[-61.465,16.514],[-61.461,16.499],[-61.444,16.5],[-61.441,16.489],[-61.41,16.467],[-61.4,16.411],[-61.405,16.385],[-61.376,16.341],[-61.297,16.328],[-61.26,16.304],[-61.243,16.273],[-61.175,16.243],[-61.256,16.256],[-61.294,16.243],[-61.339,16.242],[-61.464,16.197],[-61.53,16.218]]]],"Martinique":[[[[-61.118,14.628],[-61.136,14.633],[-61.152,14.65],[-61.177,14.689],[-61.185,14.709],[-61.177,14.746],[-61.215,14.783],[-61.229,14.812],[-61.226,14.831],[-61.207,14.862],[-61.181,14.875],[-61.139,14.878],[-61.098,14.863],[-61.057,14.834],[-61.029,14.83],[-61.032,14.823],[-61.023,14.822],[-61.017,14.808],[-61.002,14.809],[-61.004,14.798],[-60.98,14.778],[-60.961,14.738],[-60.935,14.762],[-60.92,14.758],[-60.888,14.78],[-60.875,14.775],[-60.873,14.758],[-60.884,14.768],[-60.897,14.761],[-60.888,14.753],[-60.899,14.744],[-60.891,14.74],[-60.896,14.733],[-60.91,14.736],[-60.926,14.751],[-60.943,14.743],[-60.938,14.734],[-60.944,14.733],[-60.945,14.723],[-60.934,14.716],[-60.925,14.721],[-60.933,14.708],[-60.914,14.716],[-60.914,14.703],[-60.901,14.699],[-60.911,14.688],[-60.929,14.687],[-60.925,14.679],[-60.937,14.684],[-60.943,14.669],[-60.929,14.653],[-60.912,14.666],[-60.894,14.659],[-60.883,14.665],[-60.886,14.653],[-60.906,14.648],[-60.889,14.641],[-60.899,14.621],[-60.887,14.621],[-60.887,14.615],[-60.87,14.62],[-60.878,14.612],[-60.868,14.601],[-60.872,14.596],[-60.859,14.589],[-60.852,14.595],[-60.846,14.583],[-60.852,14.58],[-60.844,14.579],[-60.854,14.575],[-60.852,14.568],[-60.843,14.571],[-60.849,14.567],[-60.841,14.567],[-60.845,14.559],[-60.825,14.568],[-60.839,14.55],[-60.827,14.537],[-60.837,14.533],[-60.824,14.53],[-60.837,14.512],[-60.824,14.513],[-60.823,14.496],[-60.811,14.48],[-60.824,14.472],[-60.809,14.46],[-60.824,14.452],[-60.835,14.423],[-60.849,14.427],[-60.839,14.411],[-60.846,14.413],[-60.856,14.397],[-60.869,14.395],[-60.893,14.421],[-60.88,14.438],[-60.884,14.452],[-60.878,14.446],[-60.873,14.457],[-60.864,14.455],[-60.866,14.47],[-60.877,14.472],[-60.899,14.448],[-60.91,14.469],[-60.934,14.462],[-60.965,14.473],[-60.974,14.468],[-60.98,14.482],[-60.985,14.473],[-60.992,14.479],[-60.992,14.466],[-61.004,14.479],[-61.006,14.471],[-61.019,14.481],[-61.033,14.477],[-61.056,14.454],[-61.082,14.47],[-61.08,14.489],[-61.091,14.493],[-61.085,14.505],[-61.101,14.508],[-61.088,14.534],[-61.065,14.542],[-61.052,14.562],[-61.052,14.551],[-61.038,14.557],[-61.044,14.547],[-61.027,14.535],[-61.008,14.542],[-61.007,14.536],[-60.994,14.547],[-60.997,14.551],[-60.99,14.55],[-60.998,14.561],[-61.011,14.561],[-61.01,14.578],[-61.024,14.585],[-61.014,14.602],[-61.022,14.603],[-61.019,14.612],[-61.04,14.606],[-61.037,14.593],[-61.06,14.595],[-61.059,14.604],[-61.066,14.597],[-61.071,14.603],[-61.09,14.599],[-61.118,14.628]]]],"Guyane":[[[[-53.469,5.565],[-53.251,5.521],[-53.299,5.549],[-53.275,5.563],[-52.996,5.432],[-52.997,5.46],[-52.941,5.45],[-52.365,4.921],[-52.302,4.951],[-52.006,4.702],[-51.836,4.654],[-51.752,4.418],[-51.692,4.395],[-51.71,4.312],[-51.619,4.201],[-51.656,4.054],[-51.776,3.976],[-51.799,3.887],[-51.973,3.705],[-52.191,3.297],[-52.33,3.172],[-52.379,2.913],[-52.555,2.64],[-52.528,2.581],[-52.661,2.374],[-52.842,2.291],[-52.904,2.187],[-52.98,2.168],[-53.112,2.225],[-53.274,2.19],[-53.227,2.264],[-53.34,2.352],[-53.469,2.252],[-53.74,2.306],[-53.736,2.372],[-53.797,2.361],[-53.835,2.332],[-53.813,2.311],[-53.883,2.309],[-53.905,2.261],[-53.934,2.281],[-53.944,2.215],[-54.066,2.197],[-54.107,2.111],[-54.169,2.129],[-54.184,2.178],[-54.342,2.152],[-54.362,2.212],[-54.477,2.213],[-54.548,2.27],[-54.514,2.281],[-54.539,2.325],[-54.602,2.337],[-54.506,2.338],[-54.476,2.435],[-54.387,2.47],[-54.208,2.778],[-54.161,2.969],[-54.174,3.109],[-54.214,3.15],[-54.064,3.313],[-53.981,3.604],[-54.083,3.674],[-54.122,3.793],[-54.198,3.806],[-54.192,3.847],[-54.237,3.861],[-54.358,4.05],[-54.323,4.144],[-54.391,4.187],[-54.387,4.354],[-54.442,4.371],[-54.45,4.526],[-54.415,4.606],[-54.479,4.904],[-54.416,5.085],[-54.019,5.521],[-53.968,5.745],[-53.799,5.724],[-53.469,5.565]]]],"La Réunion":[[[[55.254,-21.11],[55.221,-21.077],[55.226,-21.053],[55.217,-21.038],[55.235,-21.018],[55.257,-21.016],[55.277,-21.001],[55.277,-20.955],[55.29,-20.933],[55.283,-20.935],[55.284,-20.926],[55.325,-20.935],[55.322,-20.926],[55.345,-20.922],[55.395,-20.882],[55.421,-20.874],[55.451,-20.872],[55.471,-20.885],[55.592,-20.896],[55.651,-20.917],[55.683,-20.944],[55.699,-20.972],[55.707,-21.027],[55.731,-21.048],[55.737,-21.069],[55.78,-21.122],[55.826,-21.144],[55.835,-21.16],[55.837,-21.183],[55.826,-21.186],[55.819,-21.209],[55.802,-21.26],[55.809,-21.331],[55.797,-21.351],[55.775,-21.366],[55.682,-21.375],[55.647,-21.389],[55.633,-21.383],[55.609,-21.387],[55.587,-21.372],[55.551,-21.374],[55.501,-21.351],[55.484,-21.352],[55.449,-21.328],[55.42,-21.322],[55.391,-21.292],[55.339,-21.281],[55.331,-21.259],[55.293,-21.23],[55.281,-21.202],[55.287,-21.161],[55.273,-21.15],[55.271,-21.132],[55.254,-21.11]]]],"Mayotte":[[[[45.1,-12.802],[45.101,-12.797],[45.113,-12.794],[45.098,-12.792],[45.098,-12.784],[45.094,-12.785],[45.102,-12.78],[45.102,-12.767],[45.094,-12.766],[45.092,-12.771],[45.087,-12.765],[45.077,-12.767],[45.06,-12.751],[45.052,-12.756],[45.043,-12.744],[45.058,-12.727],[45.04,-12.722],[45.05,-12.712],[45.052,-12.7],[45.062,-12.702],[45.073,-12.692],[45.073,-12.686],[45.067,-12.681],[45.081,-12.681],[45.083,-12.671],[45.093,-12.663],[45.093,-12.657],[45.098,-12.658],[45.105,-12.651],[45.102,-12.659],[45.105,-12.662],[45.088,-12.67],[45.105,-12.677],[45.102,-12.683],[45.112,-12.686],[45.115,-12.696],[45.131,-12.7],[45.131,-12.704],[45.123,-12.706],[45.132,-12.721],[45.121,-12.723],[45.128,-12.724],[45.125,-12.727],[45.14,-12.735],[45.138,-12.732],[45.144,-12.731],[45.141,-12.728],[45.148,-12.728],[45.155,-12.737],[45.162,-12.732],[45.164,-12.723],[45.167,-12.724],[45.166,-12.718],[45.177,-12.73],[45.183,-12.727],[45.204,-12.73],[45.21,-12.736],[45.214,-12.732],[45.213,-12.741],[45.225,-12.743],[45.237,-12.753],[45.24,-12.763],[45.234,-12.773],[45.23,-12.773],[45.234,-12.768],[45.23,-12.762],[45.232,-12.767],[45.226,-12.774],[45.234,-12.776],[45.238,-12.785],[45.221,-12.79],[45.215,-12.802],[45.203,-12.81],[45.204,-12.819],[45.192,-12.83],[45.197,-12.833],[45.185,-12.839],[45.188,-12.844],[45.196,-12.845],[45.202,-12.863],[45.212,-12.863],[45.213,-12.873],[45.222,-12.873],[45.217,-12.886],[45.196,-12.897],[45.192,-12.906],[45.205,-12.92],[45.186,-12.917],[45.176,-12.933],[45.179,-12.943],[45.169,-12.943],[45.169,-12.949],[45.177,-12.965],[45.193,-12.976],[45.204,-12.975],[45.194,-12.987],[45.181,-12.984],[45.178,-12.995],[45.172,-12.978],[45.16,-12.973],[45.156,-12.98],[45.158,-12.989],[45.149,-13],[45.142,-13],[45.134,-12.989],[45.126,-12.996],[45.125,-12.98],[45.114,-12.982],[45.109,-12.994],[45.106,-12.987],[45.111,-12.968],[45.108,-12.957],[45.093,-12.967],[45.079,-12.962],[45.1,-12.947],[45.104,-12.931],[45.098,-12.925],[45.087,-12.93],[45.089,-12.925],[45.071,-12.9],[45.099,-12.899],[45.106,-12.923],[45.137,-12.938],[45.149,-12.934],[45.155,-12.923],[45.139,-12.891],[45.124,-12.882],[45.111,-12.864],[45.104,-12.863],[45.093,-12.853],[45.103,-12.844],[45.115,-12.844],[45.121,-12.84],[45.101,-12.834],[45.106,-12.82],[45.1,-12.802]]],[[[45.271,-12.793],[45.255,-12.781],[45.268,-12.789],[45.284,-12.759],[45.293,-12.769],[45.296,-12.782],[45.3,-12.784],[45.294,-12.788],[45.296,-12.796],[45.285,-12.803],[45.288,-12.817],[45.28,-12.812],[45.271,-12.793]]]]};
+// projette [nom, lat, lng] : dans l'encart du territoire s'il y en a un, sinon sur la métropole
+function P(c){const lat=c[1],lng=c[2],i=INSETS.find(t=>lng>=t.b[0]-1&&lng<=t.b[2]+1&&lat>=t.b[1]-1&&lat<=t.b[3]+1);
+  return(i&&i.proj?i.proj:proj)([lng,lat]);}
+// Encarts outre-mer : en haut sur téléphone (le bas de la carte est sous la liste), en bas sur grand écran
+let mapTop=null,regionsP=null;
+function initMap(){
+  mapTop=mobile();
+  svg=d3.select("#map").insert("svg",":first-child").attr("viewBox",`0 0 ${W} ${H}`).attr("preserveAspectRatio",mapTop?"xMidYMin meet":"xMidYMid meet").attr("role","img").attr("aria-label","Carte de la France, métropole et outre-mer");
+  gRoot=svg.append("g");gReg=gRoot.append("g");gBub=gRoot.append("g");
+  // sur téléphone, la rangée d'encarts s'arrête avant les boutons + / − (coin haut droit)
+  const gap=mapTop?6:8,row=W-32-(mapTop?84:0),bw=(row-gap*(INSETS.length-1))/INSETS.length,bh=H-MH-24,y=mapTop?10:MH+12;
+  const ext=mapTop?[[16,y+bh+14],[W-16,H-16]]:[[16,16],[W-16,MH]];
+  proj=d3.geoConicConformal().parallels([44,49]).rotate([-3,0]).fitExtent(ext,FR);
+  INSETS.forEach((t,i)=>{const x=16+i*(bw+gap);t.box=[[x,y],[x+bw,y+bh]];
+    t.proj=d3.geoMercator().fitExtent([[x+8,y+8],[x+bw-8,y+bh-18]],{type:"MultiPoint",coordinates:[[t.b[0],t.b[1]],[t.b[2],t.b[3]]]});
+    const g=gReg.append("g").attr("class","inset").on("click",()=>zoomTo(t.box));
+    g.append("rect").attr("class","inset-box").attr("x",x).attr("y",y).attr("width",bw).attr("height",bh).attr("rx",8);
+    if(OM_SHAPES[t.n]){const f={type:"Feature",geometry:{type:"MultiPolygon",coordinates:OM_SHAPES[t.n]}};
+      if(d3.geoArea(f)>2*Math.PI)f.geometry.coordinates.forEach(p=>p.forEach(r=>r.reverse())); // sens des anneaux attendu par d3
+      g.append("path").attr("class","region").attr("d",d3.geoPath(t.proj)(f));}
+    g.append("text").attr("class","inset-lbl").attr("x",x+bw/2).attr("y",y+bh-6).text(t.n);
+    t.g=g;});
+  zoom=d3.zoom().scaleExtent([1,12]).translateExtent([[0,0],[W,H]]).on("zoom",ev=>{gRoot.attr("transform",ev.transform);K=ev.transform.k;drawBubbles();})
+    .on("end",ev=>{const t=ev.transform;
+      // la zone visible de la carte filtre la liste dès qu'on a zoomé
+      if(t.k<1.05)S.view=null;else{const a=t.invert([0,0]),b=t.invert([W,H]);S.view=[a[0],a[1],b[0],b[1]];}
+      renderQuick();renderList();});
+  svg.call(zoom).on("dblclick.zoom",null);
+  regionsP=regionsP||fetch("https://cdn.jsdelivr.net/gh/gregoiredavid/france-geojson@master/regions-version-simplifiee.geojson").then(r=>{if(!r.ok)throw 0;return r.json();});
+  regionsP.then(geo=>{const om=f=>INSETS.find(t=>t.n===f.properties.nom),feats=geo.features.filter(f=>!om(f));
+     proj.fitExtent(ext,{type:"FeatureCollection",features:feats});
+     const path=d3.geoPath(proj);
+     gReg.selectAll("path.metro").data(feats).join("path").attr("class","region metro").attr("d",path).on("click",(ev,f)=>zoomTo(path.bounds(f)));
+     drawBubbles();})
+   .catch(()=>{$("mapOff").style.display="block";});
+}
+function drawBubbles(){
+  if(!proj)return;
+  const counts={};DATA.forEach(d=>{if(match(d,true))counts[d.c]=(counts[d.c]||0)+1;});
+  const pts=Object.entries(counts).map(([c,n])=>{const [x,y]=P(C[c]);return{c,n,x,y};}).sort((a,b)=>b.n-a.n);
+  const th=30/K,cl=[];
+  pts.forEach(p=>{const g=cl.find(q=>Math.hypot(q.x-p.x,q.y-p.y)<th);
+    if(g){g.cities.push(p);const t=g.n+p.n;g.x=(g.x*g.n+p.x*p.n)/t;g.y=(g.y*g.n+p.y*p.n)/t;g.n=t;}else cl.push({x:p.x,y:p.y,n:p.n,cities:[p]});});
+  const sel=gBub.selectAll("g.bubble").data(cl,d=>d.cities.map(c=>c.c).sort().join("|"));
+  sel.exit().remove();
+  const en=sel.enter().append("g").attr("class","bubble").attr("role","button").attr("tabindex",0);
+  en.append("title");en.append("circle");en.append("text");
+  const all=en.merge(sel).attr("transform",d=>`translate(${d.x},${d.y})`);
+  all.select("title").text(d=>d.cities.map(c=>cityName(c.c)).join(", ")+" · "+d.n);
+  all.select("circle").attr("r",d=>(11+Math.sqrt(d.n)*3.4)/K);
+  all.select("text").attr("font-size",13/K).text(d=>d.n);
+  all.on("click",(ev,d)=>tapBubble(d)).on("keydown",(ev,d)=>{if(ev.key==="Enter")tapBubble(d);});
+}
+function tapBubble(d){
+  if(d.cities.length>1){const xs=d.cities.map(c=>c.x),ys=d.cities.map(c=>c.y),m=34/K;
+    zoomTo([[Math.min(...xs)-m,Math.min(...ys)-m],[Math.max(...xs)+m,Math.max(...ys)+m]]);return;}
+  S.city=d.cities[0].c;update();
+  if(mobile())setSnap("half");
+  list.scrollTop=0;
+}
+function zoomTo([[x0,y0],[x1,y1]]){const k=Math.min(12,.85/Math.max((x1-x0)/W,(y1-y0)/H));
+  svg.transition().duration(600).call(zoom.transform,d3.zoomIdentity.translate(W/2,H/2).scale(k).translate(-(x0+x1)/2,-(y0+y1)/2));}
+$("zin").onclick=()=>svg&&svg.transition().duration(250).call(zoom.scaleBy,1.6);
+$("zout").onclick=()=>svg&&svg.transition().duration(250).call(zoom.scaleBy,1/1.6);
+function resetZoom(){if(svg)svg.transition().duration(600).call(zoom.transform,d3.zoomIdentity);else{S.view=null;update();}}
+
+function update(){
+  renderQuick();renderList();renderFilters();drawBubbles();
+  const n=(S.alt!=="all")+S.doms.size+(S.reg!=="all")+S.deps.size;const b=$("badge");b.textContent=n;b.classList.toggle("on",n>0);
+}
+if(window.d3)initMap();else $("mapOff").style.display="block";
+// passage téléphone ⇄ grand écran : on redessine la carte avec la bonne disposition des encarts
+addEventListener("resize",()=>{if(!svg||mobile()===mapTop)return;svg.remove();svg=null;K=1;S.view=null;initMap();renderQuick();renderList();});
+update();
+
+/* ---- Masters : données ouvertes Mon Master (ministère de l'Enseignement supérieur) ----
+   Les masters sont chargés en ligne ; la liste RAW ci-dessus sert de secours hors connexion.
+   Écoles d'ingénieurs et grades master ne sont pas dans Mon Master : ils restent dans RAW. */
+const MM_API="https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/catalog/datasets/fr-esr-mon_master";
+const MM_DIGITAL=/digital|num[ée]rique|web|e-?commerce|e-?business|online|r[ée]seaux sociaux|data/i;
+const MM={ // mention Mon Master : [libellé affiché, domaines, BUT concernés]
+ // communication et médias : les deux BUT
+ "INFORMATION, COMMUNICATION":["Information-communication","com","mmi,ic"],
+ "COMMUNICATION DES ORGANISATIONS":["Communication des organisations","com","mmi,ic"],
+ "COMMUNICATION PUBLIQUE ET POLITIQUE":["Communication publique et politique","com","mmi,ic"],
+ "CULTURE ET COMMUNICATION":["Culture et communication","com,cult","mmi,ic"],
+ "INFORMATION ET MEDIATION SCIENTIFIQUE ET TECHNIQUE":["Information et médiation scientifique et technique","com","mmi,ic"],
+ "INDUSTRIES CULTURELLES":["Industries culturelles","com,cult","mmi,ic"],
+ "HUMANITES ET INDUSTRIES CREATIVES":["Humanités et industries créatives","com,design","mmi,ic"],
+ "JOURNALISME":["Journalisme","journ","mmi,ic"],
+ "HUMANITES NUMERIQUES":["Humanités numériques","hum","mmi,ic"],
+ "INFORMATION, DOCUMENTATION":["Information, documentation","hum","mmi,ic"],
+ "SCIENCES DE L'INFORMATION ET DES BIBLIOTHEQUES":["Sciences de l'information et des bibliothèques","hum","mmi,ic"],
+ "METIERS DU LIVRE ET DE L'EDITION":["Métiers du livre et de l'édition","edit","mmi,ic"],
+ "MARKETING, VENTE":["Marketing, vente","mkt","mmi,ic"],
+ // création, image, informatique : BUT MMI
+ "DESIGN":["Design","design","mmi"],
+ "CREATION NUMERIQUE":["Création numérique","design,jeu","mmi"],
+ "ARTS, TECHNOLOGIES, CREATION":["Arts, technologies, création","design","mmi"],
+ "ERGONOMIE":["Ergonomie","ux","mmi"],
+ "SCIENCES COGNITIVES":["Sciences cognitives","ux","mmi"],
+ "INFORMATIQUE":["Informatique","info","mmi"],
+ "METHODES INFORMATIQUES APPLIQUEES A LA GESTION DES ENTREPRISES-MIAGE":["MIAGE","info","mmi"],
+ "MATHEMATIQUES ET INFORMATIQUE APPLIQUEES AUX SCIENCES HUMAINES ET SOCIALES -MIASHS":["MIASHS","info","mmi"],
+ "TECHNOLOGIES DE L'INFORMATION":["Technologies de l'information","info","mmi"],
+ "AUDIOVISUEL, MEDIAS INTERACTIFS NUMERIQUES, JEUX":["Audiovisuel, médias interactifs numériques, jeux","jeu,av","mmi"],
+ "OPTIQUE, IMAGE, VISION, MULTIMEDIA":["Optique, image, vision, multimédia","jeu,info","mmi"],
+ "INGENIERIE DE L'IMAGE, INGENIERIE DU SON":["Ingénierie de l'image, ingénierie du son","av,jeu","mmi"],
+ "INGENIERIE ET INNOVATION EN IMAGES ET RESEAUX":["Ingénierie et innovation en images et réseaux","jeu,info","mmi"],
+ "CINEMA ET AUDIOVISUEL":["Cinéma et audiovisuel","av","mmi"],
+ "SCIENCES ET CULTURES DU VISUEL":["Sciences et cultures du visuel","av","mmi"],
+ // culture et patrimoine (parcours « Métiers du livre et du patrimoine ») : BUT Info-com
+ "PATRIMOINE ET MUSEES":["Patrimoine et musées","cult","ic"],
+ "CULTURE, PATRIMOINE ET MEDIATION":["Culture, patrimoine et médiation","cult","ic"],
+ "DIRECTION DE PROJETS OU ETABLISSEMENTS CULTURELS":["Direction de projets ou établissements culturels","cult","ic"],
+ "MUSEOLOGIE, MUSEO-EXPOGRAPHIE":["Muséologie, muséo-expographie","cult","ic"],
+ "HISTOIRE, CIVILISATIONS, PATRIMOINE":["Histoire, civilisations, patrimoine","cult","ic"]
+};
+// filtres sur l'intitulé du parcours, par BUT (une mention sans filtre est gardée en entier)
+const MM_FILT={
+ "MARKETING, VENTE":{mmi:MM_DIGITAL,ic:/digital|num[ée]rique|web|communic|publicit|marque|[ée]v[ée]nement|culture|social|r[ée]seaux sociaux/i},
+ "HISTOIRE, CIVILISATIONS, PATRIMOINE":{ic:/patrimoine|mus[ée]|valoris|m[ée]diation|archives|num[ée]rique|journalisme|m[ée]dias|[ée]crit/i}
+};
+const MM_PRIVE=/catholique|facult[ée]s libres|[ée]cole de commerce/i; // l'annuaire ne garde que le public
+// coordonnées des communes (API Géo) ; une commune absente est géocodée à la volée
+const GEO={"AIX EN PROVENCE|13":["Aix-en-Provence",43.536,5.3879],"ALBI|81":["Albi",43.929,2.1323],"AMIENS|80":["Amiens",49.8987,2.2847],"ANGERS|49":["Angers",47.4819,-0.5629],"ANGLET|64":["Anglet",43.4893,-1.5193],"ANGOULEME|16":["Angoulême",45.6458,0.145],"ARRAS|62":["Arras",50.2893,2.7679],"AUBAGNE|13":["Aubagne",43.2904,5.5643],"AUBIERE|63":["Aubière",45.752,3.1272],"AVIGNON|84":["Avignon",43.9416,4.8333],"BASTIDE|33":["Bordeaux",44.8624,-0.5848],"BELFORT|90":["Belfort",47.6458,6.841],"BESANCON|25":["Besançon",47.2602,6.0123],"BEZIERS|34":["Béziers",43.3481,3.2342],"BIOT|06":["Biot",43.6273,7.0821],"BLOIS|41":["Blois",47.5813,1.3049],"BOURG EN BRESSE|01":["Bourg-en-Bresse",46.2027,5.2469],"BREST|29":["Brest",48.4085,-4.4996],"BRON|69":["Bron",45.7355,4.9116],"CAEN|14":["Caen",49.1846,-0.3722],"CALAIS|62":["Calais",50.9523,1.869],"CANNES LA BOCCA|06":["Cannes",43.5454,7.0152],"CERGY PONTOISE|95":["Cergy",49.0373,2.0455],"CHOLET|49":["Cholet",47.0358,-0.875],"CLERMONT FERRAND|63":["Clermont-Ferrand",45.787,3.1127],"COLMAR|68":["Colmar",48.1115,7.3924],"COMPIEGNE|60":["Compiègne",49.4006,2.8547],"CORTE|20":["Corte",42.2737,9.0691],"CRETEIL|94":["Créteil",48.7845,2.4523],"DAX|40":["Dax",43.7025,-1.0637],"DIJON|21":["Dijon",47.3319,5.0322],"ECHIROLLES|38":["Échirolles",45.1441,5.7148],"EPINAL|88":["Épinal",48.1637,6.4867],"EVRY COURCOURONNES|91":["Évry",48.6287,2.4313],"EVRY|91":["Évry",48.6287,2.4313],"FUTUROSCOPE CHASSENEUIL|86":["Chasseneuil-du-Poitou",46.6476,0.356],"GENNEVILLIERS|92":["Gennevilliers",48.9319,2.288],"GIERES|38":["Gières",45.1828,5.7902],"GIF SUR YVETTE|91":["Gif-sur-Yvette",48.6964,2.1342],"GRENOBLE|38":["Grenoble",45.1842,5.7155],"GUINGAMP|22":["Guingamp",48.5608,-3.1533],"GUYANCOURT|78":["Guyancourt",48.7735,2.0745],"HEROUVILLE SAINT CLAIR|14":["Hérouville-Saint-Clair",49.2042,-0.3324],"LA GARDE|83":["La Garde",43.129,6.0162],"LA PLAINE SAINT DENIS|93":["Saint-Denis",48.9378,2.3657],"LA ROCHELLE|17":["La Rochelle",46.162,-1.1765],"LE BOURGET DU LAC|73":["Le Bourget-du-Lac",45.642,5.8536],"LE HAVRE|76":["Le Havre",49.4958,0.1312],"LE MANS|72":["Le Mans",47.9819,0.1957],"LENS|62":["Lens",50.4395,2.8191],"LIEUSAINT|77":["Lieusaint",48.6277,2.549],"LILLE|59":["Lille",50.6311,3.0468],"LIMOGES|87":["Limoges",45.8567,1.226],"LORIENT|56":["Lorient",47.7494,-3.3799],"LYON|69":["Lyon",45.758,4.8351],"MARNE LA VALLEE|77":["Champs-sur-Marne",48.8485,2.594],"MARSEILLE|13":["Marseille",43.2803,5.3806],"METZ|57":["Metz",49.1048,6.1962],"MONT SAINT AIGNAN|76":["Mont-Saint-Aignan",49.4673,1.0806],"MONTAUBAN|82":["Montauban",44.0217,1.3646],"MONTBELIARD|25":["Montbéliard",47.5168,6.7834],"MONTPELLIER|34":["Montpellier",43.61,3.8742],"MULHOUSE|68":["Mulhouse",47.7526,7.3255],"NANCY|54":["Nancy",48.6881,6.1734],"NANTERRE|92":["Nanterre",48.8974,2.2018],"NANTES|44":["Nantes",47.2382,-1.5603],"NEUILLY SUR SEINE|92":["Neuilly-sur-Seine",48.8862,2.2651],"NICE|06":["Nice",43.7032,7.2528],"NIMES|30":["Nîmes",43.8322,4.3429],"NIORT|79":["Niort",46.3274,-0.4613],"ORLEANS|45":["Orléans",47.8734,1.9122],"ORSAY|91":["Orsay",48.6972,2.1896],"PALAISEAU|91":["Palaiseau",48.7155,2.2293],"PARIS|75":["Paris",48.8589,2.347],"PAU|64":["Pau",43.3219,-0.3435],"PERPIGNAN|66":["Perpignan",42.699,2.9045],"PESSAC|33":["Pessac",44.786,-0.681],"PLOUFRAGAN|22":["Ploufragan",48.4915,-2.8001],"POITIERS|86":["Poitiers",46.5846,0.3715],"PONTOISE|95":["Pontoise",49.0488,2.0996],"REIMS|51":["Reims",49.2535,4.0551],"RENNES|35":["Rennes",48.1159,-1.6884],"ROUBAIX|59":["Roubaix",50.6887,3.1843],"ROUEN|76":["Rouen",49.4412,1.0912],"SACLAY|91":["Saclay",48.7367,2.1693],"SAINT BERTHEVIN|53":["Saint-Berthevin",48.0739,-0.8462],"SAINT CLOUD|92":["Saint-Cloud",48.844,2.2032],"SAINT DENIS|93":["Saint-Denis",48.9378,2.3657],"SAINT ETIENNE DU ROUVRAY|76":["Saint-Étienne-du-Rouvray",49.3833,1.0909],"SAINT ETIENNE|42":["Saint-Étienne",45.4241,4.3665],"SAINT NAZAIRE|44":["Saint-Nazaire",47.2768,-2.2392],"SAINT QUENTIN|23":["Saint-Quentin",49.8475,3.279],"SCEAUX|92":["Sceaux",48.776,2.2963],"SOISSONS|02":["Soissons",49.3766,3.3235],"SOTTEVILLE LES ROUEN|76":["Sotteville-lès-Rouen",49.4116,1.0944],"STRASBOURG|67":["Strasbourg",48.5691,7.7621],"TALENCE|33":["Talence",44.8061,-0.5918],"TOULON|83":["Toulon",43.1364,5.9334],"TOULOUSE|31":["Toulouse",43.6007,1.4328],"TOURS|37":["Tours",47.3943,0.6949],"TROYES|10":["Troyes",48.2924,4.0761],"VALENCE|26":["Valence",44.9234,4.9164],"VALENCIENNES|59":["Valenciennes",50.362,3.5142],"VANDOEUVRE LES NANCY|54":["Vandœuvre-lès-Nancy",48.66,6.1603],"VANNES|56":["Vannes",47.6577,-2.7485],"VERSAILLES|78":["Versailles",48.8039,2.1191],"VILLETANEUSE|93":["Villetaneuse",48.9574,2.3441],"VILLEURBANNE|69":["Villeurbanne",45.7719,4.8898],"SAINT MARTIN D HERES|38":["Saint-Martin-d'Hères",45.1672,5.7653],"VILLENEUVE D ASCQ|59":["Villeneuve-d'Ascq",50.6233,3.1444]};
+function cityKey(lieux){const l=(lieux||"").split("|")[0],m=l.match(/([^()]*?)\s*\((\w+)\)\s*$/);if(!m)return null;
+  const n=m[1].split(" - ").pop().normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/\bCEDEX\b.*$/,"").replace(/[-']/g," ").replace(/\bST\b/g,"SAINT").replace(/\s+/g," ").trim();
+  return n+"|"+m[2];}
+// Outre-mer : Mon Master indique seulement « (97) » ou « (98) », on précise le territoire ici.
+// Le nom affiché porte le territoire pour ne pas confondre Saint-Denis (93) et Saint-Denis (La Réunion).
+Object.assign(GEO,{
+ "POINTE A PITRE|97":["Pointe-à-Pitre",16.2411,-61.5331,"971"],"BASSE TERRE|97":["Basse-Terre",15.9985,-61.7255,"971"],"SAINT CLAUDE|97":["Saint-Claude (Guadeloupe)",16.0257,-61.6993,"971"],
+ "SCHOELCHER|97":["Schœlcher",14.6146,-61.0909,"972"],"FORT DE FRANCE|97":["Fort-de-France",14.6161,-61.0588,"972"],
+ "CAYENNE|97":["Cayenne",4.9224,-52.3135,"973"],"KOUROU|97":["Kourou",5.1597,-52.6503,"973"],
+ "SAINT DENIS|97":["Saint-Denis (La Réunion)",-20.8789,55.4481,"974"],"SAINT PIERRE|97":["Saint-Pierre (La Réunion)",-21.3393,55.4781,"974"],"LE TAMPON|97":["Le Tampon",-21.2779,55.5177,"974"],
+ "DEMBENI|97":["Dembeni",-12.8394,45.1883,"976"],"MAMOUDZOU|97":["Mamoudzou",-12.7806,45.2278,"976"],
+ "NOUMEA|98":["Nouméa",-22.2758,166.458,"988"]});
+async function mmGeocode(rows){
+  const miss=[...new Set(rows.map(r=>cityKey(r.lieux)).filter(k=>k&&!GEO[k]&&!/\|98/.test(k)))].slice(0,40);
+  await Promise.all(miss.map(async k=>{const[n,d]=k.split("|"),om=d==="97";
+    try{const j=await(await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(n)}${om?"":"&codeDepartement="+d}&fields=nom,centre,codeDepartement&boost=population&limit=5`)).json();
+      const c=om?j.find(x=>/^97/.test(x.codeDepartement)):j[0];
+      if(c)GEO[k]=[c.nom,c.centre.coordinates[1],c.centre.coordinates[0]].concat(om?[c.codeDepartement]:[]);}catch(e){}}));
+}
+function mmTidy(p){p=(p||"").replace(/\s*\((en )?(apprentissage|alternance)\)\s*$/i,"").replace(/\s+/g," ").trim();
+  return p&&p===p.toUpperCase()?p[0]+p.slice(1).toLowerCase():p;}
+// Sites web des établissements : jeu « principaux établissements » du ministère (par identifiant Paysage ou UAI)
+const ETAB_API="https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/catalog/datasets/fr-esr-principaux-etablissements-enseignement-superieur";
+const URL_FIX={"0381912X":"https://www.grenoble-inp.fr","0597131F":"https://www.insa-hautsdefrance.fr","0900424X":"https://www.utbm.fr",
+  "0380141X":"https://www.grenoble.archi.fr","0690184A":"https://www.lyon.archi.fr"}; // absents du jeu ministériel
+async function etabUrls(){const m={};
+  try{(await(await fetch(ETAB_API+"/exports/json?select="+encodeURIComponent("uai,etablissement_id_paysage,url"))).json())
+    .forEach(e=>{if(!e.url)return;m[e.etablissement_id_paysage]=e.url;[].concat(e.uai||[]).forEach(u=>m[u]=e.url);});}catch(e){}
+  return m;}
+function mmBuild(rows,session,urls){
+  const byName={};Object.keys(C).forEach(k=>byName[norm(cityName(k))]=k);
+  const groups=new Map();
+  rows.forEach(r=>{const m=MM[r.mention];if(!m)return;
+    const eta=r.uo_lib_actuel||r.eta_nom||"";if(MM_PRIVE.test(eta))return;
+    const flt=MM_FILT[r.mention]||{},aud=m[2].split(",").filter(b=>!flt[b]||flt[b].test(r.parcours||""));if(!aud.length)return;
+    const ck=cityKey(r.lieux),g=ck&&GEO[ck];if(!g)return;
+    let c=byName[norm(g[0])];if(!c){c=ck;C[c]=g;byName[norm(g[0])]=c;}
+    const p=mmTidy(r.parcours),key=[eta,r.mention,norm(p),c].join("|");
+    let o=groups.get(key);
+    if(!o){o={t:"M",f:"Master "+m[0]+(p?" — "+p:""),e:eta,c,d:m[1].split(","),p:aud,a0:0,a1:0,cap:0,session,mm:1,
+      u:urls[r.id_paysage_actuel]||urls[r.id_paysage]||urls[r.eta_uai]||URL_FIX[r.eta_uai]||"https://www.monmaster.gouv.fr"};groups.set(key,o);}
+    r.alternance==="1"?o.a1++:o.a0++;o.cap+=r.col||0;});
+  return[...groups.values()].map(o=>{o.a=o.a1&&o.a0?"mixte":o.a1?"obligatoire":"initiale";delete o.a0;delete o.a1;return o;});
+}
+// Masters recrutant hors Mon Master (écoles de journalisme sur concours, Enjmin, École des chartes) :
+// on garde ceux de la liste intégrée tant que les données en ligne n'en contiennent pas l'équivalent.
+const MM_HORS=/journalisme|enjmin|chartes/i;
+const mmWords=e=>norm(e).split(/[^a-z0-9]+/).filter(w=>w.length>=5&&!/^(universite|ecole|institut|nationale?|superieure?)$/.test(w));
+function mmKeep(d,items){if(!MM_HORS.test(d.f+" "+d.e))return false;const w=mmWords(d.e);
+  return!items.some(x=>x.c===d.c&&x.d.some(k=>d.d.includes(k))&&mmWords(x.e).some(y=>w.includes(y)));}
+async function loadMasters(){
+  const CK="mmi-masters-v4";let cache=null;try{["mmi-masters-v1","mmi-masters-v2","mmi-masters-v3","hud-design-mmi"].forEach(k=>localStorage.removeItem(k));cache=JSON.parse(localStorage.getItem(CK));}catch(e){}
+  const use=(c,label)=>{Object.assign(C,c.cities);
+    DATA=RAW_DATA.filter(d=>d.t!=="M"||mmKeep(d,c.items)).concat(c.items).map((d,i)=>geoTag({...d,id:i}));
+    update();};
+  if(cache&&Date.now()-cache.t<864e5){use(cache,"Masters : Mon Master "+cache.session);return;}
+  try{
+    const s=await(await fetch(MM_API+"/records?select=session&group_by=session&order_by="+encodeURIComponent("session desc")+"&limit=1")).json();
+    const session=s.results[0].session;
+    const where=`session="${session}" and mention in (${Object.keys(MM).map(m=>`"${m}"`).join(",")})`;
+    const[r,urls]=await Promise.all([fetch(MM_API+"/exports/json?select="+encodeURIComponent("eta_uai,id_paysage,id_paysage_actuel,eta_nom,uo_lib_actuel,mention,parcours,alternance,lieux,col")+"&where="+encodeURIComponent(where)),etabUrls()]);
+    if(!r.ok)throw new Error(r.status);
+    const rows=await r.json();
+    await mmGeocode(rows);
+    const before=new Set(Object.keys(C)),items=mmBuild(rows,session,urls);
+    if(items.length<50)throw new Error("réponse incomplète");
+    const cities={};Object.keys(C).forEach(k=>{if(!before.has(k))cities[k]=C[k];});
+    cache={t:Date.now(),session,items,cities};try{localStorage.setItem(CK,JSON.stringify(cache));}catch(e){}
+    use(cache,"Masters : Mon Master "+session);
+  }catch(e){
+    if(cache)use(cache,"Masters : Mon Master "+cache.session+" (copie locale)");
+    // hors connexion sans copie locale : la liste intégrée reste affichée
+  }
+}
+loadMasters();
+</script>
+</body>
+</html>

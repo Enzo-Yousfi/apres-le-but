@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Icône « Après le BUT » : épingle de carte mi-MMI (magenta) mi-Info-com (vert), toque de diplômé au centre.
+       Le dessin tient dans la zone sûre des icônes adaptatives (cercle de 80 % au centre). -->
+  <defs>
+    <radialGradient id="h1" cx="22%" cy="20%" r="60%"><stop offset="0" stop-color="#CFE0F7"/><stop offset="1" stop-color="#CFE0F7" stop-opacity="0"/></radialGradient>
+    <radialGradient id="h2" cx="82%" cy="18%" r="55%"><stop offset="0" stop-color="#F1D8F3"/><stop offset="1" stop-color="#F1D8F3" stop-opacity="0"/></radialGradient>
+    <radialGradient id="h3" cx="60%" cy="88%" r="60%"><stop offset="0" stop-color="#a72587" stop-opacity=".22"/><stop offset="1" stop-color="#a72587" stop-opacity="0"/></radialGradient>
+    <linearGradient id="pin" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#a72587"/><stop offset=".5" stop-color="#a72587"/>
+      <stop offset=".5" stop-color="#99c21c"/><stop offset="1" stop-color="#99c21c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#F8F3F0"/>
+  <rect width="512" height="512" fill="url(#h1)"/>
+  <rect width="512" height="512" fill="url(#h2)"/>
+  <rect width="512" height="512" fill="url(#h3)"/>
+  <ellipse cx="256" cy="424" rx="54" ry="11" fill="#0B1F3F" opacity=".14"/>
+  <path d="M256 418C222 362 140 302 140 228a116 116 0 0 1 232 0c0 74-82 134-116 190z" fill="url(#pin)"/>
+  <circle cx="256" cy="228" r="66" fill="#FFFFFF"/>
+  <!-- toque -->
+  <path d="M228 236v20c0 12 56 12 56 0v-20l-28 11z" fill="#0B1F3F"/>
+  <path d="M256 196l56 22-56 22-56-22z" fill="#0B1F3F"/>
+  <path d="M302 222v26" stroke="#0B1F3F" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="302" cy="252" r="5" fill="#0B1F3F"/>
+</svg>
