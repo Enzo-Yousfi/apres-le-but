@@ -855,7 +855,9 @@ measureTop();setSnap("half");
    mais pas au-delà (pas de défilement à l'infini). */
 const FR_B=[[41.25,-5.3],[51.15,9.65]];          // métropole
 const WORLD_B=[[-85,-180],[85,180]];             // le monde entier, sans répétition à gauche ni à droite
-let map,fitZoom=5,markers=null,attrib,atHome=true;
+let map,fitZoom=5,markers=null,attrib,atHome=true,userMove=false;
+// geste de l'utilisateur sur la carte (pas un déplacement automatique)
+function userMoved(){atHome=false;userMove=true;}
 const fitOpts=()=>mobile()
   ?{paddingTopLeft:[14,topH()+10],paddingBottomRight:[14,$("app").offsetHeight-snapY(snap)+10]}
   :{paddingTopLeft:[432,24],paddingBottomRight:[24,24]};
@@ -887,10 +889,12 @@ function initMap(){
   // la vue France est refaite au redimensionnement seulement si l'utilisateur n'a pas bougé la carte
   // (sur téléphone, la barre d'adresse qui se replie déclenche un redimensionnement)
   map.on("moveend",()=>{const v=map.getZoom()>fitZoom+.3?map.getBounds():null; // au-delà de la vue France : liste = zone visible
+    const dropCity=userMove&&S.city;userMove=false;
+    if(dropCity){S.city=null;S.view=v;update();return;} // on a bougé la carte : la ville choisie ne filtre plus
     if(v||S.view){S.view=v;renderQuick();renderList();}});
-  map.on("dragstart",()=>atHome=false);
-  map.getContainer().addEventListener("wheel",()=>atHome=false,{passive:true});
-  map.getContainer().addEventListener("touchstart",e=>{if(e.touches.length>1)atHome=false;},{passive:true});
+  map.on("dragstart",userMoved);
+  map.getContainer().addEventListener("wheel",userMoved,{passive:true});
+  map.getContainer().addEventListener("touchstart",e=>{if(e.touches.length>1)userMoved();},{passive:true});
 }
 // regroupe les villes proches à l'écran (44 px) puis pose une bulle par groupe
 function drawBubbles(){
@@ -913,8 +917,8 @@ function tapBubble(g){
   if(mobile())setSnap("half");
   list.scrollTop=0;
 }
-$("zin").onclick=()=>{if(map){atHome=false;map.zoomIn(.75);}};
-$("zout").onclick=()=>{if(map){atHome=false;map.zoomOut(.75);}};
+$("zin").onclick=()=>{if(map){userMoved();map.zoomIn(.75);}};
+$("zout").onclick=()=>{if(map){userMoved();map.zoomOut(.75);}};
 function resetZoom(){S.view=null;if(map)fitFrance(true);update();}
 
 function update(){
